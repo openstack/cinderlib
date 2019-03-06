@@ -26,18 +26,24 @@ Here we take care of:
 Some of these changes may be later moved to OS-Brick. For now we just copied it
 from the nos-brick repository.
 """
+import errno
 import functools
 import os
+import traceback
 
 from os_brick import exception
 from os_brick.initiator import connector
 from os_brick.initiator import connectors
 from os_brick.privileged import rootwrap
 from oslo_concurrency import processutils as putils
+from oslo_log import log as logging
 from oslo_privsep import priv_context
 from oslo_utils import fileutils
 from oslo_utils import strutils
 import six
+
+
+LOG = logging.getLogger(__name__)
 
 
 class RBDConnector(connectors.rbd.RBDConnector):
@@ -86,8 +92,19 @@ class RBDConnector(connectors.rbd.RBDConnector):
                 # create the symlinks, ensure they exist
                 if self.containerized:
                     self._ensure_link(real_path, link_name)
-        except Exception:
-            fileutils.delete_if_exists(conf)
+        except Exception as exec_exception:
+            try:
+                try:
+                    self._unmap(real_path, conf, connection_properties)
+                finally:
+                    fileutils.delete_if_exists(conf)
+            except Exception:
+                exc = traceback.format_exc()
+                LOG.error('Exception occurred while cleaning up after '
+                          'connection error\n%s', exc)
+            finally:
+                raise exception.BrickException('Error connecting volume: %s' %
+                                               six.text_type(exec_exception))
 
         return {'path': real_path,
                 'conf': conf,
@@ -96,10 +113,16 @@ class RBDConnector(connectors.rbd.RBDConnector):
     def _ensure_link(self, source, link_name):
         self._ensure_dir(os.path.dirname(link_name))
         if self.im_root:
+            # If the link exists, remove it in case it's a leftover
+            if os.path.exists(link_name):
+                os.remove(link_name)
             try:
                 os.symlink(source, link_name)
-            except Exception:
-                pass
+            except OSError as exc:
+                # Don't fail if symlink creation fails because it exists.
+                # It means that ceph-common has just created it.
+                if exc.errno != errno.EEXIST:
+                    raise
         else:
             self._execute('ln', '-s', '-f', source, link_name,
                           run_as_root=True)
@@ -122,6 +145,13 @@ class RBDConnector(connectors.rbd.RBDConnector):
             return False
         return True
 
+    def _unmap(self, real_dev_path, conf_file, connection_properties):
+        if os.path.exists(real_dev_path):
+            cmd = ['rbd', 'unmap', real_dev_path, '--conf', conf_file]
+            cmd += self._get_rbd_args(connection_properties)
+            self._execute(*cmd, root_helper=self._root_helper,
+                          run_as_root=True)
+
     def disconnect_volume(self, connection_properties, device_info,
                           force=False, ignore_errors=False):
         self._setup_rbd_class()
@@ -130,21 +160,21 @@ class RBDConnector(connectors.rbd.RBDConnector):
         link_name = self.get_rbd_device_name(pool, volume)
         real_dev_path = os.path.realpath(link_name)
 
-        if os.path.exists(real_dev_path):
-            cmd = ['rbd', 'unmap', real_dev_path, '--conf', conf_file]
-            cmd += self._get_rbd_args(connection_properties)
-            self._execute(*cmd, root_helper=self._root_helper,
-                          run_as_root=True)
-
-            if self.containerized:
-                unlink_root(link_name)
+        self._unmap(real_dev_path, conf_file, connection_properties)
+        if self.containerized:
+            unlink_root(link_name)
         fileutils.delete_if_exists(conf_file)
 
     def _ensure_dir(self, path):
         if self.im_root:
-            os.makedirs(path)
+            try:
+                os.makedirs(path, 0o755)
+            except OSError as exc:
+                # Don't fail if directory already exists, as our job is done.
+                if exc.errno != errno.EEXIST:
+                    raise
         else:
-            self._execute('mkdir', '-p', path, run_as_root=True)
+            self._execute('mkdir', '-p', '-m0755', path, run_as_root=True)
 
     def _setup_class(self):
         try:
@@ -176,10 +206,17 @@ def unlink_root(*links, **kwargs):
     if os.getuid() == 0:
         for link in links:
             with exc.context(catch_exception, error_msg, links):
-                os.unlink(link)
+                try:
+                    os.unlink(link)
+                except OSError as exc:
+                    # Ignore file doesn't exist errors
+                    if exc.errno != errno.ENOENT:
+                        raise
     else:
         with exc.context(catch_exception, error_msg, links):
+            # Ignore file doesn't exist errors
             putils.execute('rm', *links, run_as_root=True,
+                           check_exit_code=(0, errno.ENOENT),
                            root_helper=ROOT_HELPER)
 
     if not no_errors and raise_at_end and exc:
