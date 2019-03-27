@@ -19,6 +19,7 @@ import subprocess
 import tempfile
 
 from oslo_config import cfg
+from oslo_utils import strutils
 import six
 import unittest2
 import yaml
@@ -50,12 +51,18 @@ def test_all_backends(cls):
     return cls
 
 
+def get_bool_env(param_string, default=False):
+    param = os.environ.get(param_string, default)
+    return strutils.bool_from_string(param, strict=True)
+
+
 class BaseFunctTestCase(unittest2.TestCase):
     FNULL = open(os.devnull, 'w')
     CONFIG_FILE = os.environ.get('CL_FTEST_CFG', '/etc/cinder/cinder.conf')
     PRECISION = os.environ.get('CL_FTEST_PRECISION', 0)
-    LOGGING_ENABLED = os.environ.get('CL_FTEST_LOGGING', False)
+    LOGGING_ENABLED = get_bool_env('CL_FTEST_LOGGING', False)
     ROOT_HELPER = os.environ.get('CL_FTEST_ROOT_HELPER', 'sudo')
+    MEMORY_PERSISTENCE = get_bool_env('CL_FTEST_MEMORY_PERSISTENCE', True)
     tests_config = None
 
     @classmethod
@@ -89,6 +96,15 @@ class BaseFunctTestCase(unittest2.TestCase):
         cinderlib.setup(root_helper=cls.ROOT_HELPER,
                         disable_logs=not config['logs'],
                         persistence_config={'storage': 'memory_db'})
+
+        if cls.MEMORY_PERSISTENCE:
+            # Now replace it with the memory plugin for the tests to ensure the
+            # Cinder driver is compatible with the persistence plugin
+            # mechanism, as the DB plugin could hide issues.
+            cinderlib.Backend.global_initialization = False
+            cinderlib.setup(root_helper=cls.ROOT_HELPER,
+                            disable_logs=not config['logs'],
+                            persistence_config={'storage': 'memory'})
 
         # Initialize backends
         cls.backends = [cinderlib.Backend(**cfg) for cfg in
