@@ -158,8 +158,17 @@ class DB(object):
             ovo_cls = getattr(objects, ovo_name)
             ovo_cls.save = lambda *args, **kwargs: None
 
+    def __volume_get(self, volume_id, as_ovo=True):
+        in_memory = volume_id in cinderlib.Backend._volumes_inflight
+        if in_memory:
+            vol = cinderlib.Backend._volumes_inflight[volume_id]
+        else:
+            vol = self.persistence.get_volumes(volume_id)[0]
+        vol_result = vol._ovo if as_ovo else vol
+        return in_memory, vol_result
+
     def volume_get(self, context, volume_id, *args, **kwargs):
-        return self.persistence.get_volumes(volume_id)[0]._ovo
+        return self.__volume_get(volume_id)[1]
 
     def snapshot_get(self, context, snapshot_id, *args, **kwargs):
         return self.persistence.get_snapshots(snapshot_id)[0]._ovo
@@ -174,6 +183,10 @@ class DB(object):
         if not vol._ovo.volume_type_id:
             return None
         return vol_type_to_dict(vol._ovo.volume_type)
+
+    # Our volume type name is the same as the id and the volume name
+    def _volume_type_get_by_name(self, context, name, session=None):
+        return self.volume_type_get(context, name)
 
     def qos_specs_get(self, context, qos_specs_id, inactive=False):
         if qos_specs_id in cinderlib.Backend._volumes_inflight:
@@ -191,6 +204,45 @@ class DB(object):
     def get_by_id(self, context, model, id, *args, **kwargs):
         method = getattr(self, self.GET_METHODS_PER_DB_MODEL[model])
         return method(context, id)
+
+    def volume_get_all_by_host(self, context, host, filters=None):
+        backend_name = host.split('#')[0].split('@')[1]
+        result = self.persistence.get_volumes(backend_name=backend_name)
+        return [vol._ovo for vol in result]
+
+    def _volume_admin_metadata_get(self, context, volume_id, session=None):
+        vol = self.volume_get(context, volume_id)
+        return vol.admin_metadata
+
+    def _volume_admin_metadata_update(self, context, volume_id, metadata,
+                                      delete, session=None, add=True,
+                                      update=True):
+        vol_in_memory, vol = self.__volume_get(volume_id, as_ovo=False)
+
+        changed = False
+        if delete:
+            remove = set(vol.admin_metadata.keys()).difference(metadata.keys())
+            changed = bool(remove)
+            for k in remove:
+                del vol.admin_metadata[k]
+
+        for k, v in metadata.items():
+            is_in = k in vol.admin_metadata
+            if (not is_in and add) or (is_in and update):
+                vol.admin_metadata[k] = v
+                changed = True
+
+        if changed and not vol_in_memory:
+            vol._changed_fields.add('admin_metadata')
+            self.persistence.set_volume(vol)
+
+    def volume_admin_metadata_delete(self, context, volume_id, key):
+        vol_in_memory, vol = self.__volume_get(volume_id, as_ovo=False)
+        if key in vol.admin_metadata:
+            del vol.admin_metadata[key]
+            if not vol_in_memory:
+                vol._changed_fields.add('admin_metadata')
+                self.persistence.set_volume(vol)
 
 
 def vol_type_to_dict(volume_type):
