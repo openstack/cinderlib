@@ -152,7 +152,7 @@ description, the version of the driver, etc.
 
 Here's the entry for the LVM driver:
 
-... code-block:: python
+.. code-block:: python
 
     {'LVMVolumeDriver':
         {'ci_wiki_name': 'Cinder_Jenkins',
