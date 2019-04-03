@@ -122,6 +122,7 @@ key-value storage provided by the persistence plugin:
 
 .. code-block:: python
 
+   import socket
    import cinderlib as cl
 
    cl.setup(persistence_config=persistence_config)
@@ -173,7 +174,7 @@ No access to the metadata persistence storage
 This is more inconvenient, as you'll have to handle the data exchange manually
 as well as the *OS-Brick* library calls to do the attach/detach.
 
-First we need to get the connection information on the host that is going to do
+First we need to get the connector information on the host that is going to do
 the attach:
 
 .. code-block:: python
