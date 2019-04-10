@@ -26,6 +26,7 @@ Here we take care of:
 Some of these changes may be later moved to OS-Brick. For now we just copied it
 from the nos-brick repository.
 """
+from __future__ import absolute_import
 import errno
 import functools
 import os
@@ -41,6 +42,8 @@ from oslo_privsep import priv_context
 from oslo_utils import fileutils
 from oslo_utils import strutils
 import six
+
+import cinderlib
 
 
 LOG = logging.getLogger(__name__)
@@ -237,19 +240,19 @@ def init(root_helper='sudo'):
     ROOT_HELPER = root_helper
     priv_context.init(root_helper=[root_helper])
 
-    existing_bgcp = connector.get_connector_properties
-    existing_bcp = connector.InitiatorConnector.factory
+    brick_get_connector_properties = connector.get_connector_properties
+    brick_connector_factory = connector.InitiatorConnector.factory
 
-    def my_bgcp(*args, **kwargs):
+    def my_get_connector_properties(*args, **kwargs):
         if len(args):
             args = list(args)
             args[0] = ROOT_HELPER
         else:
             kwargs['root_helper'] = ROOT_HELPER
         kwargs['execute'] = _execute
-        return existing_bgcp(*args, **kwargs)
+        return brick_get_connector_properties(*args, **kwargs)
 
-    def my_bgc(protocol, *args, **kwargs):
+    def my_connector_factory(protocol, *args, **kwargs):
         if len(args):
             # args is a tuple and we cannot do assignments
             args = list(args)
@@ -262,11 +265,13 @@ def init(root_helper='sudo'):
         if protocol == 'rbd':
             factory = RBDConnector
         else:
-            factory = functools.partial(existing_bcp, protocol)
+            factory = functools.partial(brick_connector_factory, protocol)
 
         return factory(*args, **kwargs)
 
-    connector.get_connector_properties = my_bgcp
-    connector.InitiatorConnector.factory = staticmethod(my_bgc)
+    # Replace OS-Brick method and the reference we have to it
+    connector.get_connector_properties = my_get_connector_properties
+    cinderlib.get_connector_properties = my_get_connector_properties
+    connector.InitiatorConnector.factory = staticmethod(my_connector_factory)
     if hasattr(rootwrap, 'unlink_root'):
         rootwrap.unlink_root = unlink_root
