@@ -47,6 +47,7 @@
     pre-run: playbooks/setup-lvm.yaml
     nodeset: centos-7
 
+# The Ceph job tests cinderlib without unnecessary libraries
 - job:
     name: cinderlib-ceph-functional
     parent: openstack-tox-functional-with-sudo

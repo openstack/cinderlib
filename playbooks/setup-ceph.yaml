@@ -30,6 +30,17 @@
           name: six
           state: absent
 
+      # Leave pyparsing, as it's needed by tox through the packaging library.
+      - name: Remove Python packages unnecessary for cinderlib
+        pip:
+          name: ['glanceclient', 'novaclient', 'swiftclient', 'barbicanclient',
+                 'cursive', 'keystoneauth1', 'keystonemiddleware', 'webob',
+                 'keystoneclient', 'castellan', 'oslo_reports', 'oslo_policy',
+                 'oslo_messaging', 'osprofiler', 'oauth2client', 'paste',
+                 'oslo_middleware', 'routes', 'jsonschema', 'os-win',
+                 'oslo_upgradecheck', 'googleapiclient', 'pastedeploy']
+          state: absent
+
       - name: Install ceph-common and epel-release
         yum:
           name: ['epel-release', 'ceph-common']

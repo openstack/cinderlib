@@ -15,6 +15,7 @@
 from __future__ import absolute_import
 import pkg_resources
 
+from cinderlib import _fake_packages  # noqa F401
 from cinderlib import cinderlib
 from cinderlib import objects
 from cinderlib import serialization

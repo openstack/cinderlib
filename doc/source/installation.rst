@@ -110,5 +110,56 @@ Once you have a copy of the source, you can install it with:
     $ virtualenv cinder
     $ python setup.py install
 
+
+Dependencies
+------------
+
+*Cinderlib* has less functionality than Cinder, which results in fewer required
+libraries.
+
+When installing from PyPi or source, we'll get all the dependencies regardless
+of whether they are needed by *cinderlib* or not, since the Cinder Python
+package specifies all the dependencies.  Installing from packages may result in
+fewer dependencies, but this will depend on the distribution package itself.
+
+To increase loading speed, and reduce memory footprint and dependencies,
+*cinderlib* fakes all unnecessary packages at runtime if they have not already
+been loaded.
+
+This can be convenient when creating containers, as  one can remove unnecessary
+packages on the same layer *cinderlib* gets installed to get a smaller
+containers.
+
+If our application uses any of the packages *cinderlib* fakes, we just have to
+import them before importing *cinderlib*.  This way *cinderlib* will not fake
+them.
+
+The list of top level packages unnecessary for *cinderlib* are:
+
+- castellan
+- cursive
+- googleapiclient
+- jsonschema
+- keystoneauth1
+- keystonemiddleware
+- oauth2client
+- os-win
+- oslo.messaging
+- oslo.middleware
+- oslo.policy
+- oslo.reports
+- oslo.upgradecheck
+- osprofiler
+- paste
+- pastedeploy
+- pyparsing
+- python-barbicanclient
+- python-glanceclient
+- python-novaclient
+- python-swiftclient
+- python-keystoneclient
+- routes
+- webob
+
 .. _Github repo: https://github.com/openstack/cinderlib
 .. _tarball: https://github.com/openstack/cinderlib/tarball/master
