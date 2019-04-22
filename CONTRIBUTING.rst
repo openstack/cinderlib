@@ -11,6 +11,6 @@ the workflow documented at:
 
 Pull requests submitted through GitHub will be ignored.
 
-Bugs should be filed as stories on StoryBoard, not in GitHub's issue tracker:
+Bugs should be filed in Launchpad:
 
-   https://storyboard.openstack.org/#!/project/openstack/cinderlib
+   https://bugs.launchpad.net/cinderlib

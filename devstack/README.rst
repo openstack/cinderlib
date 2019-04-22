@@ -17,11 +17,11 @@ where::
 
 For example::
 
-    enable_plugin cinderlib https://git.openstack.org/openstack/cinderlib
+    enable_plugin cinderlib https://opendev.org/openstack/cinderlib
 
-Another example using Stein's stable branch::
+Another example using Train's stable branch::
 
-    enable_plugin cinderlib https://git.openstack.org/openstack/cinderlib stable/stein
+    enable_plugin cinderlib https://opendev.org/openstack/cinderlib stable/train
 
 The cinderlib DevStack plugin will install cinderlib from Git by default, but
 it can be installed from PyPi using the ``CINDERLIB_FROM_GIT`` configuration
