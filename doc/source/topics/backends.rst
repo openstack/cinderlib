@@ -59,7 +59,7 @@ volume driver configuration documentation`_.
 
     Python library dependencies are usually documented in the
     `driver-requirements.txt file
-    <https://github.com/openstack/cinder/blob/master/driver-requirements.txt>`_,
+    <https://opendev.org/openstack/cinder/src/branch/master/driver-requirements.txt>`_,
     as for the CLI required tools, we'll have to check in the Vendor's
     documentation.
 
