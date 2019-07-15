@@ -103,7 +103,7 @@ class PersistenceDriverBase(object):
         result = {key: getattr(resource._ovo, key)
                   for key in resource._changed_fields
                   if not isinstance(resource.fields[key], fields.ObjectField)}
-        if getattr(resource._ovo, 'volume_type_id', None):
+        if getattr(resource._ovo, 'volume_type', None):
             if ('qos_specs' in resource.volume_type._changed_fields and
                     resource.volume_type.qos_specs):
                 result['qos_specs'] = resource._ovo.volume_type.qos_specs.specs
