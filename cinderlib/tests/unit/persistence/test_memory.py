@@ -22,10 +22,10 @@ class TestMemoryPersistence(base.BasePersistenceTest):
 
     def tearDown(self):
         # Since this plugin uses class attributes we have to clear them
-        self.persistence.volumes = {}
-        self.persistence.snapshots = {}
-        self.persistence.connections = {}
-        self.persistence.key_values = {}
+        self.persistence.volumes.clear()
+        self.persistence.snapshots.clear()
+        self.persistence.connections.clear()
+        self.persistence.key_values.clear()
         super(TestMemoryPersistence, self).tearDown()
 
     def test_db(self):

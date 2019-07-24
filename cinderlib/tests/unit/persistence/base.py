@@ -16,6 +16,8 @@
 from cinder.cmd import volume as volume_cmd
 from cinder.db.sqlalchemy import api
 from cinder.db.sqlalchemy import models
+from cinder import objects
+from cinder.objects import base as cinder_base_ovo
 from oslo_versionedobjects import fields
 
 import cinderlib
@@ -26,6 +28,15 @@ from cinderlib.tests.unit import utils
 class BasePersistenceTest(base.BaseTest):
     @classmethod
     def setUpClass(cls):
+        # Save OVO methods that some persistence plugins mess up
+        cls.ovo_methods = {}
+        for ovo_name in cinder_base_ovo.CinderObjectRegistry.obj_classes():
+            ovo_cls = getattr(objects, ovo_name)
+            cls.ovo_methods[ovo_name] = {
+                'save': getattr(ovo_cls, 'save', None),
+                'get_by_id': getattr(ovo_cls, 'get_by_id', None),
+            }
+
         cls.original_impl = volume_cmd.session.IMPL
         cinderlib.Backend.global_initialization = False
         cinderlib.setup(persistence_config=cls.PERSISTENCE_CFG)
@@ -35,6 +46,11 @@ class BasePersistenceTest(base.BaseTest):
         volume_cmd.session.IMPL = cls.original_impl
         cinderlib.Backend.global_initialization = False
         api.main_context_manager = api.enginefacade.transaction_context()
+        for ovo_name, methods in cls.ovo_methods.items():
+            ovo_cls = getattr(objects, ovo_name)
+            for method_name, method in methods.items():
+                if method:
+                    setattr(ovo_cls, method_name, method)
 
     def setUp(self):
         super(BasePersistenceTest, self).setUp()
