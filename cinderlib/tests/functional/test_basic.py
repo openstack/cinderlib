@@ -16,6 +16,18 @@
 import os
 
 import base_tests
+import cinderlib
+
+
+class BaseFunctTestCase(base_tests.unittest2.TestCase):
+    def test_list_supported_drivers(self):
+        expected_keys = {'version', 'class_name', 'supported', 'ci_wiki_name',
+                         'driver_options', 'class_fqn', 'desc'}
+
+        drivers = cinderlib.Backend.list_supported_drivers()
+        self.assertNotEqual(0, len(drivers))
+        for name, driver_info in drivers.items():
+            self.assertEqual(expected_keys, set(driver_info.keys()))
 
 
 @base_tests.test_all_backends
