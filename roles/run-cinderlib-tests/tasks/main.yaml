@@ -1,0 +1,9 @@
+---
+- include_role:
+    name: tox
+  vars:
+    tox_envlist: "{{ cinderlib_envlist }}"
+    zuul_work_dir: "{{ cinderlib_base_dir }}"
+    tox_environment:
+      CL_FTEST_CFG: "{{ cinderlib_config_file }}"
+      CL_FTEST_ROOT_HELPER: "{{ cinderlib_root_helper }}"
