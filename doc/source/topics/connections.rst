@@ -128,7 +128,7 @@ key-value storage provided by the persistence plugin:
    cl.setup(persistence_config=persistence_config)
 
    kv = cl.Backend.persistence.get_key_values(node_id)
-   if not kw:
+   if not kv:
        storage_nw_ip = socket.gethostbyname(socket.gethostname())
        connector_dict = cl.get_connector_properties('sudo', storage_nw_ip,
                                                     True, False)
