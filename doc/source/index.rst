@@ -98,5 +98,7 @@ Table of Contents
 
    installation
    usage
+   validated
+   validating
    contributing
    limitations
