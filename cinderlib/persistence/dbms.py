@@ -21,6 +21,7 @@ from cinder.db import api as db_api
 from cinder.db import migration
 from cinder.db.sqlalchemy import api as sqla_api
 from cinder.db.sqlalchemy import models
+from cinder import exception as cinder_exception
 from cinder import objects as cinder_objs
 from oslo_config import cfg
 from oslo_db import exception
@@ -73,6 +74,16 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
 
         migration.db_sync()
         self._create_key_value_table()
+
+        # NOTE : At this point, the persistence isn't ready so we need to use
+        # db_instance instead of sqlalchemy API or DB API.
+        orm_obj = self.db_instance.volume_type_get_by_name(objects.CONTEXT,
+                                                           '__DEFAULT__')
+        cls = cinder_objs.VolumeType
+        expected_attrs = cls._get_expected_attrs(objects.CONTEXT)
+        self.DEFAULT_TYPE = cls._from_db_object(
+            objects.CONTEXT, cls(objects.CONTEXT), orm_obj,
+            expected_attrs=expected_attrs)
         super(DBPersistence, self).__init__()
 
     def vol_type_get(self, context, id, inactive=False,
@@ -185,7 +196,12 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         # Since OVOs are not tracking QoS or Extra specs dictionary changes,
         # we only support setting QoS or Extra specs on creation or add them
         # later.
-        if changed.get('volume_type_id'):
+        vol_type_id = changed.get('volume_type_id')
+        if vol_type_id == self.DEFAULT_TYPE.id:
+            if extra_specs or qos_specs:
+                raise cinder_exception.VolumeTypeUpdateFailed(
+                    id=self.DEFAULT_TYPE.name)
+        elif vol_type_id:
             vol_type_fields = {'id': volume.volume_type_id,
                                'name': volume.volume_type_id,
                                'extra_specs': extra_specs,
@@ -212,6 +228,10 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
                                          {'name': volume.volume_type_id,
                                           'consumer': 'back-end',
                                           'specs': qos_specs})
+            else:
+                volume._ovo.volume_type = self.DEFAULT_TYPE
+                volume._ovo.volume_type_id = self.DEFAULT_TYPE.id
+                changed['volume_type_id'] = self.DEFAULT_TYPE.id
 
         # Create the volume
         if 'id' in changed:
@@ -281,10 +301,12 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
             session.add(kv)
 
     def delete_volume(self, volume):
+        delete_type = (volume.volume_type_id != self.DEFAULT_TYPE.id
+                       and volume.volume_type_id)
         if self.soft_deletes:
             LOG.debug('soft deleting volume %s', volume.id)
             self.db.volume_destroy(objects.CONTEXT, volume.id)
-            if volume.volume_type_id:
+            if delete_type:
                 LOG.debug('soft deleting volume type %s',
                           volume.volume_type_id)
                 self.db.volume_destroy(objects.CONTEXT, volume.volume_type_id)
@@ -295,7 +317,7 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
             LOG.debug('hard deleting volume %s', volume.id)
             query = sqla_api.model_query(objects.CONTEXT, models.Volume)
             query.filter_by(id=volume.id).delete()
-            if volume.volume_type_id:
+            if delete_type:
                 LOG.debug('hard deleting volume type %s',
                           volume.volume_type_id)
                 query = sqla_api.model_query(objects.CONTEXT,

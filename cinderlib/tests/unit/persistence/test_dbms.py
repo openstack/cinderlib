@@ -104,6 +104,20 @@ class TestDBPersistence(base.BasePersistenceTest):
         actual = sqla_api.get_session().query(dbms.KeyValue).all()
         self.assertListEqualObj(expected, actual)
 
+    def test_create_volume_with_default_volume_type(self):
+        vol = cinderlib.Volume(self.backend, size=1, name='disk')
+        self.persistence.set_volume(vol)
+        self.assertEqual(self.persistence.DEFAULT_TYPE.id, vol.volume_type_id)
+        self.assertIs(self.persistence.DEFAULT_TYPE, vol.volume_type)
+        res = sqla_api.volume_type_get(self.context, vol.volume_type_id)
+        self.assertIsNotNone(res)
+        self.assertEqual('__DEFAULT__', res['name'])
+
+    def test_default_volume_type(self):
+        self.assertIsInstance(self.persistence.DEFAULT_TYPE,
+                              cinder_ovos.VolumeType)
+        self.assertEqual('__DEFAULT__', self.persistence.DEFAULT_TYPE.name)
+
 
 class TestMemoryDBPersistence(TestDBPersistence):
     PERSISTENCE_CFG = {'storage': 'memory_db'}
