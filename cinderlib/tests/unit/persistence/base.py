@@ -13,7 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
+from oslo_config import cfg
+
 import cinderlib
+from cinderlib.persistence import base as persistence_base
 from cinderlib.tests.unit.persistence import helper
 from cinderlib.tests.unit import utils
 
@@ -378,3 +382,141 @@ class BasePersistenceTest(helper.TestHelper):
         self.persistence.delete_key_value(fake_key)
         res = self.persistence.get_key_values()
         self.assertListEqual(kvs, self.sorted(res, 'key'))
+
+    @mock.patch('cinderlib.persistence.base.DB.volume_type_get')
+    def test__volume_type_get_by_name(self, get_mock):
+        # Only test when using our fake DB class.  We cannot use
+        # unittest2.skipUnless because persistence is configure in setUpClass,
+        # which is called after the decorator.
+        if not isinstance(cinderlib.objects.Backend.persistence.db,
+                          persistence_base.DB):
+            return
+
+        # Volume type id and name are the same, so method must be too
+        res = self.persistence.db._volume_type_get_by_name(self.context,
+                                                           mock.sentinel.name)
+        self.assertEqual(get_mock.return_value, res)
+        get_mock.assert_called_once_with(self.context, mock.sentinel.name)
+
+    def test_volume_type_get_by_id(self):
+        extra_specs = [{'k1': 'v1', 'k2': 'v2'},
+                       {'kk1': 'vv1', 'kk2': 'vv2', 'kk3': 'vv3'}]
+        vols = self.create_volumes(
+            [{'size': 1, 'extra_specs': extra_specs[0]},
+             {'size': 2, 'extra_specs': extra_specs[1]}],
+            sort=False)
+
+        res = self.persistence.db.volume_type_get(self.context, vols[0].id)
+
+        self.assertEqual(vols[0].id, res['id'])
+        self.assertEqual(vols[0].id, res['name'])
+        self.assertEqual(extra_specs[0], res['extra_specs'])
+
+    def test_volume_get_all_by_host(self):
+        # Only test when using our fake DB class.  We cannot use
+        # unittest2.skipUnless because persistence is configure in setUpClass,
+        # which is called after the decorator.
+        if not isinstance(cinderlib.objects.Backend.persistence.db,
+                          persistence_base.DB):
+            return
+
+        persistence_db = self.persistence.db
+        host = '%s@%s' % (cfg.CONF.host, self.backend.id)
+
+        vols = [v._ovo for v in self.create_n_volumes(2)]
+        backend2 = utils.FakeBackend(volume_backend_name='fake2')
+        vol = self.create_volumes([{'backend_or_vol': backend2, 'size': 3}])
+
+        # We should be able to get it using the host@backend
+        res = persistence_db.volume_get_all_by_host(self.context, host)
+        self.assertListEqualObj(vols, self.sorted(res))
+
+        # Confirm it also works when we pass a host that includes the pool
+        res = persistence_db.volume_get_all_by_host(self.context, vols[0].host)
+        self.assertListEqualObj(vols, self.sorted(res))
+
+        # Check we also get the other backend's volume
+        host = '%s@%s' % (cfg.CONF.host, backend2.id)
+        res = persistence_db.volume_get_all_by_host(self.context, host)
+        self.assertListEqualObj(vol[0]._ovo, res[0])
+
+    def test__volume_admin_metadata_get(self):
+        # Only test when using our fake DB class.  We cannot use
+        # unittest2.skipUnless because persistence is configure in setUpClass,
+        # which is called after the decorator.
+        if not isinstance(cinderlib.objects.Backend.persistence.db,
+                          persistence_base.DB):
+            return
+
+        admin_metadata = {'k': 'v'}
+        vols = self.create_volumes([{'size': 1,
+                                     'admin_metadata': admin_metadata}])
+        result = self.persistence.db._volume_admin_metadata_get(self.context,
+                                                                vols[0].id)
+        self.assertDictEqual(admin_metadata, result)
+
+    def test__volume_admin_metadata_update(self):
+        # Only test when using our fake DB class.  We cannot use
+        # unittest2.skipUnless because persistence is configure in setUpClass,
+        # which is called after the decorator.
+        if not isinstance(cinderlib.objects.Backend.persistence.db,
+                          persistence_base.DB):
+            return
+
+        create_admin_metadata = {'k': 'v', 'k2': 'v2'}
+        admin_metadata = {'k2': 'v2.1', 'k3': 'v3'}
+        vols = self.create_volumes([{'size': 1,
+                                     'admin_metadata': create_admin_metadata}])
+
+        self.persistence.db._volume_admin_metadata_update(self.context,
+                                                          vols[0].id,
+                                                          admin_metadata,
+                                                          delete=True,
+                                                          add=True,
+                                                          update=True)
+        result = self.persistence.db._volume_admin_metadata_get(self.context,
+                                                                vols[0].id)
+        self.assertDictEqual({'k2': 'v2.1', 'k3': 'v3'}, result)
+
+    def test__volume_admin_metadata_update_do_nothing(self):
+        # Only test when using our fake DB class.  We cannot use
+        # unittest2.skipUnless because persistence is configure in setUpClass,
+        # which is called after the decorator.
+        if not isinstance(cinderlib.objects.Backend.persistence.db,
+                          persistence_base.DB):
+            return
+
+        create_admin_metadata = {'k': 'v', 'k2': 'v2'}
+        admin_metadata = {'k2': 'v2.1', 'k3': 'v3'}
+        vols = self.create_volumes([{'size': 1,
+                                     'admin_metadata': create_admin_metadata}])
+
+        # Setting delete, add, and update to False means we don't do anything
+        self.persistence.db._volume_admin_metadata_update(self.context,
+                                                          vols[0].id,
+                                                          admin_metadata,
+                                                          delete=False,
+                                                          add=False,
+                                                          update=False)
+        result = self.persistence.db._volume_admin_metadata_get(self.context,
+                                                                vols[0].id)
+        self.assertDictEqual(create_admin_metadata, result)
+
+    def test_volume_admin_metadata_delete(self):
+        # Only test when using our fake DB class.  We cannot use
+        # unittest2.skipUnless because persistence is configure in setUpClass,
+        # which is called after the decorator.
+        if not isinstance(cinderlib.objects.Backend.persistence.db,
+                          persistence_base.DB):
+            return
+
+        admin_metadata = {'k': 'v', 'k2': 'v2'}
+        vols = self.create_volumes([{'size': 1,
+                                     'admin_metadata': admin_metadata}])
+
+        self.persistence.db.volume_admin_metadata_delete(self.context,
+                                                         vols[0].id,
+                                                         'k2')
+        result = self.persistence.db._volume_admin_metadata_get(self.context,
+                                                                vols[0].id)
+        self.assertDictEqual({'k': 'v'}, result)
