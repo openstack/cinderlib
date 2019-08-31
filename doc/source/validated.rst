@@ -3,7 +3,7 @@ Validated drivers
 =================
 
 We are in the process of validating the *cinderlib* support of more *Cinder*
-drivers and adding more automated testing of drivers on *Cinder*'s gates.
+drivers and adding more automated testing of drivers on *Cinder*'s gate.
 
 For now we have 2 backends, LVM and Ceph, that are tested on every *Cinder* and
 *cinderlib* patch that is submitted and merged.
@@ -67,12 +67,12 @@ Ceph
 
   - If we don't define the ``keyring`` configuration parameter (must use an
     absolute path) in our ``rbd_ceph_conf`` to point to our
-    ``rbd_keyring_conf``file, we'll need the `r`bd_keyring_conf`` to be in
+    ``rbd_keyring_conf`` file, we'll need the ``rbd_keyring_conf`` to be in
     ``/etc/ceph/``.
   - ``rbd_keyring_confg`` must always be present and must follow the naming
      convention of ``$cluster.client.$rbd_user.conf``.
-  - Current driver cannot delete a snapshot if there's a dependent (a volume
-    created from it exists).
+  - Current driver cannot delete a snapshot if there's a dependent volume
+    (a volume created from it exists).
 
 *Configuration*:
 

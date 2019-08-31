@@ -31,7 +31,7 @@ header the in our normal ``local.conf`` file that already configures our
 backend.  The result will look like this::
 
   [[local|localrc]]
-  enable_plugin cinderlib https://git.openstack.org/openstack/cinderlib
+  enable_plugin cinderlib https://opendev.org/openstack/cinderlib
 
 After adding this we can proceed to run the ``stack.sh`` script.
 
@@ -56,7 +56,12 @@ For the LVM default backend the contents of the ``cinderlib.py`` file are:
    $ cat /etc/cinder/cinderlib.py
    import cinderlib as cl
 
-   lvmdriver_1 = cl.Backend(volume_clear="zero", lvm_type="auto", volume_backend_name="lvmdriver-1", target_helper="lioadm", volume_driver="cinder.volume.drivers.lvm.LVMVolumeDriver", image_volume_cache_enabled=True, volume_group="stack-volumes-lvmdriver-1")
+   lvmdriver_1 = cl.Backend(volume_clear="zero", lvm_type="auto",
+                            volume_backend_name="lvmdriver-1",
+                            target_helper="lioadm",
+                            volume_driver="cinder.volume.drivers.lvm.LVMVolumeDriver",
+                            image_volume_cache_enabled=True,
+                            volume_group="stack-volumes-lvmdriver-1")
 
 To confirm that this automatically generated configuration is correct we can
 do:
@@ -277,7 +282,7 @@ projects from master and then run *cinderlib*'s functional tests.
 
 As an example here's the Ceph job in the *cinderlib* project that takes
 approximately 8 minutes to run at the gate.  In the ``pre-run`` phase it starts
-a the Ceph demo container to run a Ceph toy cluster as the backend.  Then
+a Ceph demo container to run a Ceph toy cluster as the backend.  Then
 provides a custom configuration YAML file with the backend configuration::
 
    - job:
@@ -306,7 +311,7 @@ cinderlib.tests.functional``.
 Use existing job
 ^^^^^^^^^^^^^^^^
 
-The easiest way to run the *cinderlib* functional tests is is to reuse an
+The easiest way to run the *cinderlib* functional tests is to reuse an
 existing *Cinder* CI job, since we don't need to setup anything.  We just need
 to modify our job to run an additional command at the end.
 
@@ -339,8 +344,8 @@ These 2 playbooks support the ``cinderlib_ignore_errors`` boolean variable to
 allow CI jobs to run the functional tests and ignore the results so that
 *cinderlib* failures won't block patches.  You can think of it as running the
 *cinderlib* tests as non voting.  We don't recommend setting it, as it would
-defeat the purpose of running the jobs at the gate and the *cinderlib* tests a
-very consistent and reliable and don't raise false failures.
+defeat the purpose of running the jobs at the gate and the *cinderlib* tests
+are very consistent and reliable and don't raise false failures.
 
 Which one of these 2 playbook to use depends on how we are defining our CI job.
 For example the LVM job uses the ``cinderlib-run.yaml`` job in it's `run.yaml
@@ -366,7 +371,7 @@ provisioning- on a per volume basis.
 
 *Cinderlib* supports these features, but since they are driver specific, there
 is no automated testing in *cinderlib*'s functional tests; but we can test them
-them manually ourselves using the ``extra_specs``, ``qos_specs``, and
+them manually ourselves using the ``extra_specs``, ``qos_specs`` and
 ``pool_name`` parameters in the ``create_volume`` and ``clone`` methods.
 
 We can see the list of available pools in multi-pool drivers on the
