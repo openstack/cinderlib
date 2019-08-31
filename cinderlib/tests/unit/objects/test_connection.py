@@ -33,7 +33,8 @@ class TestConnection(base.BaseTest):
         super(TestConnection, self).setUp()
 
         self.vol = objects.Volume(self.backend_name, size=10)
-        self.kwargs = {'k1': 'v1', 'k2': 'v2'}
+        self.kwargs = {'k1': 'v1', 'k2': 'v2',
+                       'connection_info': {'conn': {'data': {'t': 0}}}}
         self.conn = objects.Connection(self.backend, volume=self.vol,
                                        **self.kwargs)
         self.conn._ovo.connection_info = {
@@ -43,6 +44,7 @@ class TestConnection(base.BaseTest):
         self.mock_is_mp.assert_called_once_with(self.kwargs)
         self.assertEqual(self.conn.use_multipath, self.mock_is_mp.return_value)
         self.assertEqual(self.conn.scan_attempts, self.mock_default)
+        self.assertEqual(self.conn.attach_mode, 'rw')
         self.assertIsNone(self.conn._connector)
         self.assertEqual(self.vol, self.conn._volume)
         self.assertEqual(self.vol._ovo, self.conn._ovo.volume)
@@ -90,18 +92,30 @@ class TestConnection(base.BaseTest):
     def test_init_no_backend(self):
         self.assertRaises(TypeError, objects.Connection)
 
+    def test_init_preference_attach_mode(self):
+        kwargs = {'attach_mode': 'ro',
+                  'connection_info': {'conn': {'data': {'access_mode': 'rw'}}}}
+        conn = objects.Connection(self.backend, **kwargs)
+        self.assertEqual(conn.conn_info['data']['access_mode'], 'ro')
+
     def test_init_no_volume(self):
         self.mock_is_mp.reset_mock()
-        conn = objects.Connection(self.backend, **self.kwargs)
-        self.mock_is_mp.assert_called_once_with(self.kwargs)
+        kwargs = {'attach_mode': 'ro',
+                  'connection_info': {'conn': {'data': {'t': 0}}}}
+        conn = objects.Connection(self.backend, **kwargs)
+        self.mock_is_mp.assert_called_once_with(kwargs)
         self.assertEqual(conn.use_multipath, self.mock_is_mp.return_value)
         self.assertEqual(conn.scan_attempts, self.mock_default)
+        self.assertEqual(conn.attach_mode, 'ro')
+        self.assertEqual({'data': {'access_mode': 'ro', 't': 0}},
+                         conn.conn_info)
         self.assertIsNone(conn._connector)
 
     def test_connect(self):
+        init_conn = self.backend.driver.initialize_connection
+        init_conn.return_value = {'data': {}}
         connector = {'my_c': 'v'}
         conn = self.conn.connect(self.vol, connector)
-        init_conn = self.backend.driver.initialize_connection
         init_conn.assert_called_once_with(self.vol, connector)
         self.assertIsInstance(conn, objects.Connection)
         self.assertEqual('attached', conn.status)
@@ -174,19 +188,30 @@ class TestConnection(base.BaseTest):
                          self.conn.connection_info['device'])
         self.persistence.set_connection.assert_called_once_with(self.conn)
 
-    def test_conn_info_setter(self):
-        self.conn.conn_info = mock.sentinel.conn_info
-        self.assertEqual(mock.sentinel.conn_info,
+    def test_conn_info_setter_changes_attach_mode(self):
+        self.assertEqual('rw', self.conn._ovo.attach_mode)
+        self.conn.conn_info = {'data': {'target_lun': 0, 'access_mode': 'ro'}}
+        self.assertEqual({'data': {'target_lun': 0, 'access_mode': 'ro'}},
                          self.conn._ovo.connection_info['conn'])
+        self.assertEqual('ro', self.conn._ovo.attach_mode)
+
+    def test_conn_info_setter_uses_attach_mode(self):
+        self.assertEqual('rw', self.conn._ovo.attach_mode)
+        self.conn._ovo.attach_mode = 'ro'
+        self.conn.conn_info = {'data': {'target_lun': 0}}
+        self.assertEqual({'data': {'target_lun': 0, 'access_mode': 'ro'}},
+                         self.conn.conn_info)
+        self.assertEqual('ro', self.conn._ovo.attach_mode)
 
     def test_conn_info_setter_clear(self):
-        self.conn.conn_info = mock.sentinel.conn_info
+        self.conn.conn_info = {'data': {}}
         self.conn.conn_info = {}
         self.assertIsNone(self.conn._ovo.connection_info)
 
     def test_conn_info_getter(self):
-        self.conn.conn_info = mock.sentinel.conn_info
-        self.assertEqual(mock.sentinel.conn_info, self.conn.conn_info)
+        value = {'data': {'access_mode': 'ro'}}
+        self.conn.conn_info = value
+        self.assertEqual(value, self.conn.conn_info)
 
     def test_conn_info_getter_none(self):
         self.conn.conn_info = None
