@@ -62,6 +62,10 @@
         NOSE_WITH_HTML_OUTPUT: 1
         NOSE_HTML_OUT_FILE: nose_results.html
         NOSE_WITH_XUNIT: 1
+    irrelevant-files: &documentation-files
+      - ^.*\.rst$
+      - ^doc/.*$
+      - ^releasenotes/.*$
 
 - job:
     name: cinderlib-ceph-functional
@@ -79,3 +83,4 @@
         NOSE_WITH_HTML_OUTPUT: 1
         NOSE_HTML_OUT_FILE: nose_results.html
         NOSE_WITH_XUNIT: 1
+    irrelevant-files: *documentation-files
