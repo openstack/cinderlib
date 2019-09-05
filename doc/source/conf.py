@@ -44,7 +44,8 @@ needs_sphinx = '1.6.5'
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.viewcode',
               'sphinxcontrib.apidoc',
-              'openstackdocstheme']
+              'openstackdocstheme',
+              'sphinxcontrib.rsvgconverter']
 
 # sphinxcontrib.apidoc options
 apidoc_module_dir = '../../cinderlib'
@@ -216,11 +217,17 @@ htmlhelp_basename = 'cinderlibdoc'
 
 # -- Options for LaTeX output ------------------------------------------
 
+latex_elements = {
+    'makeindex': '',
+    'printindex': '',
+    'preamble': r'\setcounter{tocdepth}{3}',
+}
+
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-    ('index', 'cinderlib.tex',
+    ('index', 'doc-cinderlib.tex',
      u'Cinder Library Documentation',
      u'Cinder Contributors', 'manual'),
 ]
@@ -243,7 +250,12 @@ latex_documents = [
 #latex_appendices = []
 
 # If false, no module index is generated.
-#latex_domain_indices = True
+latex_domain_indices = False
+
+# Disable usage of xindy https://bugzilla.redhat.com/show_bug.cgi?id=1643664
+latex_use_xindy = False
+
+latex_additional_files = ['cinderlib.sty']
 
 
 # -- Options for manual page output ------------------------------------
