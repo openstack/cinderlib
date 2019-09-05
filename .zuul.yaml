@@ -55,6 +55,13 @@
       - openstack/cinder
     pre-run: playbooks/setup-lvm.yaml
     nodeset: centos-7
+    vars:
+      tox_environment:
+        CL_FTEST_MEMORY_PERSISTENCE: "false"
+        # These come from great-great-grandparent tox job
+        NOSE_WITH_HTML_OUTPUT: 1
+        NOSE_HTML_OUT_FILE: nose_results.html
+        NOSE_WITH_XUNIT: 1
 
 - job:
     name: cinderlib-ceph-functional
