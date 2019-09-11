@@ -73,7 +73,7 @@ class BaseFunctTestCase(unittest2.TestCase):
                 cls.tests_config = cinder_to_yaml.convert(cls.CONFIG_FILE)
             else:
                 with open(cls.CONFIG_FILE, 'r') as f:
-                    cls.tests_config = yaml.load(f)
+                    cls.tests_config = yaml.safe_load(f)
             cls.tests_config.setdefault('logs', cls.LOGGING_ENABLED)
             cls.tests_config.setdefault('size_precision', cls.PRECISION)
         return cls.tests_config
