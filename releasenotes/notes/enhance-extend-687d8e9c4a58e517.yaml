@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Enhance volume extend functionality in cinderlib by supporting the refresh
+    of the host's view of an attached volume that has been extended in the
+    backend to reflect the new size.  A call to volume.extend will
+    automatically extend the view if the volume is locally attached and
+    connection.extend will do the same when run on a non controller host.

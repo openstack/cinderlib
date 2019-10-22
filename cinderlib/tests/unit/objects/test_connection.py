@@ -282,3 +282,10 @@ class TestConnection(base.BaseTest):
     def test_connected(self, value):
         with mock.patch('cinderlib.objects.Connection.conn_info', value):
             self.assertEqual(value, self.conn.connected)
+
+    def test_extend(self):
+        self.conn._ovo.connection_info['conn'] = {'data': mock.sentinel.data}
+        with mock.patch('cinderlib.objects.Connection.connector') as mock_conn:
+            res = self.conn.extend()
+            mock_conn.extend_volume.assert_called_once_with(mock.sentinel.data)
+            self.assertEqual(mock_conn.extend_volume.return_value, res)

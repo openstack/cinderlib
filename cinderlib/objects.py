@@ -39,6 +39,7 @@ DEFAULT_PROJECT_ID = 'cinderlib'
 DEFAULT_USER_ID = 'cinderlib'
 BACKEND_NAME_SNAPSHOT_FIELD = 'progress'
 CONNECTIONS_OVO_FIELD = 'volume_attachment'
+GB = 1024 ** 3
 
 # This cannot go in the setup method because cinderlib objects need them to
 # be setup to set OVO_CLASS
@@ -500,6 +501,11 @@ class Volume(NamedObject):
         finally:
             self.save()
 
+        if volume.status == 'in-use' and self.local_attach:
+            return self.local_attach.extend()
+        # Must return size in bytes
+        return size * GB
+
     def clone(self, **new_vol_attrs):
         new_vol_attrs['source_vol_id'] = self.id
         new_vol = Volume(self, **new_vol_attrs)
@@ -866,6 +872,9 @@ class Connection(Object, LazyVolumeAttr):
 
     def save(self):
         self.persistence.set_connection(self)
+
+    def extend(self):
+        return self.connector.extend_volume(self.conn_info['data'])
 
 
 class Snapshot(NamedObject, LazyVolumeAttr):
