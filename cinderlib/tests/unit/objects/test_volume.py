@@ -197,12 +197,13 @@ class TestVolume(base.BaseTest):
                              extra_specs={'e': 'v'}, qos_specs={'q': 'qv'})
         mock_clone = self.backend.driver.create_cloned_volume
         mock_clone.return_value = None
+        self.assertEqual(0, len(self.backend.volumes))
 
         res = vol.clone(size=11)
 
         mock_clone.assert_called_once_with(res._ovo, vol._ovo)
         self.persistence.set_volume.assert_called_once_with(res)
-        self.assertEqual('available', res.status)
+        self.assertEqual('available', res._ovo.status)
         self.assertEqual(11, res.size)
         self.assertEqual(vol.id, vol.volume_type_id)
         self.assertNotEqual(vol.id, res.id)
@@ -211,6 +212,9 @@ class TestVolume(base.BaseTest):
                          res.volume_type.extra_specs)
         self.assertEqual(vol.volume_type.qos_specs.specs,
                          res.volume_type.qos_specs.specs)
+        self.assertEqual(vol.id, res.source_volid)
+        self.assertEqual(1, len(self.backend.volumes))
+        self.assertIsInstance(self.backend.volumes[0], objects.Volume)
 
     def test_clone_error(self):
         vol = objects.Volume(self.backend_name, status='available', size=10)
@@ -228,7 +232,7 @@ class TestVolume(base.BaseTest):
         mock_clone.assert_called_once_with(new_vol, vol._ovo)
 
         self.persistence.set_volume.assert_called_once_with(new_vol)
-        self.assertEqual('error', new_vol.status)
+        self.assertEqual('error', new_vol._ovo.status)
         self.assertEqual(11, new_vol.size)
 
     def test_create_snapshot(self):
