@@ -115,9 +115,9 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         # This is for Pike
         if hasattr(sqla_api, '_FACADE'):
             sqla_api._FACADE = None
-        # This is for Queens and Rocky (untested)
-        elif hasattr(sqla_api, 'configure'):
-            sqla_api.configure(cfg.CONF)
+        # This is for Queens or later
+        elif hasattr(sqla_api, 'main_context_manager'):
+            sqla_api.main_context_manager.configure(**dict(cfg.CONF.database))
 
     def _create_key_value_table(self):
         models.BASE.metadata.create_all(sqla_api.get_engine(),
