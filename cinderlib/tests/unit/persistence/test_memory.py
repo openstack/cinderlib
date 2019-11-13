@@ -13,7 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from cinder import objects as ovos
+import mock
+
 import cinderlib
+from cinderlib import objects
 from cinderlib.tests.unit.persistence import base
 
 
@@ -31,6 +35,27 @@ class TestMemoryPersistence(base.BasePersistenceTest):
     def test_db(self):
         self.assertIsInstance(self.persistence.db,
                               cinderlib.persistence.base.DB)
+        self.assertEqual(self.persistence.db._DB__connections_get,
+                         ovos.VolumeAttachmentList.get_all_by_volume_id)
+
+    def test___connections_get(self):
+        """Check we can get volume_attachment from OVO."""
+        vol = objects.Volume(self.backend, size=10)
+        vol._connections = None
+        delattr(vol._ovo, '_obj_volume_attachment')
+        conns = [objects.Connection(self.backend, connector={'k': 'v'},
+                                    volume_id=vol.id, status='attached',
+                                    attach_mode='rw',
+                                    connection_info={'conn': {}})]
+
+        with mock.patch.object(self.persistence, 'get_connections') \
+                as get_conns_mock:
+            get_conns_mock.return_value = conns
+            res = vol._ovo.volume_attachment
+            self.assertIsInstance(res, ovos.VolumeAttachmentList)
+            self.assertEqual(1, len(res))
+            self.assertEqual(conns[0]._ovo, res.objects[0])
+            get_conns_mock.assert_called_once_with(volume_id=vol.id)
 
     def test_set_volume(self):
         vol = cinderlib.Volume(self.backend, size=1, name='disk')

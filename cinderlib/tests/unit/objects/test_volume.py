@@ -15,6 +15,8 @@
 
 import mock
 
+from cinder import objects as cinder_ovos
+
 from cinderlib import exception
 from cinderlib import objects
 from cinderlib.tests.unit import base
@@ -85,6 +87,7 @@ class TestVolume(base.BaseTest):
     def test_connections_lazy_loading(self):
         vol = objects.Volume(self.backend, size=10)
         vol._connections = None
+        delattr(vol._ovo, '_obj_volume_attachment')
 
         conns = [objects.Connection(self.backend, connector={'k': 'v'},
                                     volume_id=vol.id, status='attached',
@@ -107,6 +110,39 @@ class TestVolume(base.BaseTest):
         result = vol.connections
         self.assertEqual(conns, result)
         mock_get_conns.not_called()
+
+    @mock.patch('cinder.objects.volume_attachment.VolumeAttachmentList.'
+                'get_all_by_volume_id')
+    def test_connections_lazy_loading_from_ovo(self, get_all_mock):
+        """Test we don't reload connections if data is in OVO."""
+        vol = objects.Volume(self.backend, size=10)
+        vol._connections = None
+        delattr(vol._ovo, '_obj_volume_attachment')
+
+        conns = [objects.Connection(self.backend, connector={'k': 'v'},
+                                    volume_id=vol.id, status='attached',
+                                    attach_mode='rw',
+                                    connection_info={'conn': {}},
+                                    name='my_snap')]
+        ovo_conns = [conn._ovo for conn in conns]
+        ovo_attach_list = cinder_ovos.VolumeAttachmentList(objects=ovo_conns)
+        get_all_mock.return_value = ovo_attach_list
+        mock_get_conns = self.persistence.get_connections
+
+        ovo_result = vol._ovo.volume_attachment
+
+        mock_get_conns.not_called()
+        self.assertEqual(ovo_attach_list, ovo_result)
+        # Cinderlib object doesn't have the connections yet
+        self.assertIsNone(vol._connections)
+        self.assertEqual(1, len(vol._ovo.volume_attachment))
+        self.assertEqual(vol._ovo.volume_attachment[0], ovo_result[0])
+        # There is no second call when we access the cinderlib object, as the
+        # data is retrieved from the OVO that already has it
+        result = vol.connections
+        mock_get_conns.not_called()
+        # Confirm we used the OVO
+        self.assertIs(ovo_conns[0], result[0]._ovo)
 
     def test_get_by_id(self):
         mock_get_vols = self.persistence.get_volumes

@@ -152,11 +152,20 @@ class DB(object):
         # expected data
         objects.Volume.get_by_id = self.volume_get
         objects.Snapshot.get_by_id = self.snapshot_get
+        objects.VolumeAttachmentList.get_all_by_volume_id = \
+            self.__connections_get
 
         # Disable saving in OVOs
         for ovo_name in cinder_base_ovo.CinderObjectRegistry.obj_classes():
             ovo_cls = getattr(objects, ovo_name)
             ovo_cls.save = lambda *args, **kwargs: None
+
+    def __connections_get(self, context, volume_id):
+        # Used by drivers to lazy load volume_attachment
+        connections = self.persistence.get_connections(volume_id=volume_id)
+        ovos = [conn._ovo for conn in connections]
+        result = objects.VolumeAttachmentList(objects=ovos)
+        return result
 
     def __volume_get(self, volume_id, as_ovo=True):
         in_memory = volume_id in cinderlib.Backend._volumes_inflight

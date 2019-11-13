@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Bug #1852629: Extending an LVM raised an exception, even though the volume
+    was extended.  For in-use volumes the node that had the volume attached
+    wouldn't see the new size.

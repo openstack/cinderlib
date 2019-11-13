@@ -378,14 +378,23 @@ class Volume(NamedObject):
     def connections(self):
         # Lazy loading
         if self._connections is None:
-            self._connections = self.persistence.get_connections(
-                volume_id=self.id)
-            for conn in self._connections:
-                conn.volume = self
-            ovos = [conn._ovo for conn in self._connections]
-            setattr(self._ovo, CONNECTIONS_OVO_FIELD,
-                    cinder_objs.VolumeAttachmentList(objects=ovos))
-            self._ovo.obj_reset_changes((CONNECTIONS_OVO_FIELD,))
+            # Check if the driver has already lazy loaded it using OVOs
+            if self._ovo.obj_attr_is_set(CONNECTIONS_OVO_FIELD):
+                conns = [Connection(None, volume=self, __ovo=ovo)
+                         for ovo
+                         in getattr(self._ovo, CONNECTIONS_OVO_FIELD).objects]
+
+            # Retrieve data from persistence storage
+            else:
+                conns = self.persistence.get_connections(volume_id=self.id)
+                for conn in conns:
+                    conn.volume = self
+                ovos = [conn._ovo for conn in conns]
+                setattr(self._ovo, CONNECTIONS_OVO_FIELD,
+                        cinder_objs.VolumeAttachmentList(objects=ovos))
+                self._ovo.obj_reset_changes((CONNECTIONS_OVO_FIELD,))
+
+            self._connections = conns
 
         return self._connections
 
