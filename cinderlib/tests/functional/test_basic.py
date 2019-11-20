@@ -15,8 +15,8 @@
 
 import os
 
-import base_tests
 import cinderlib
+from cinderlib.tests.functional import base_tests
 
 
 class BaseFunctTestCase(base_tests.unittest2.TestCase):

@@ -41,7 +41,8 @@ def set_backend(func, new_name, backend_name):
 def test_all_backends(cls):
     """Decorator to run tests in a class for all available backends."""
     config = BaseFunctTestCase.ensure_config_loaded()
-    for fname, func in cls.__dict__.items():
+    # Prevent dictionary changed size during iteration on Python 3
+    for fname, func in dict(vars(cls)).items():
         if fname.startswith('test_'):
             for backend in config['backends']:
                 bname = backend['volume_backend_name']
