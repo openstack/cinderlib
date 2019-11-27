@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Bug #1854188: Work with complex configuration options like ListOpt,
+    DictOpt, and MultiOpt with dict items.
