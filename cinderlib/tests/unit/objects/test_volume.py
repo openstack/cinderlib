@@ -173,11 +173,24 @@ class TestVolume(base.BaseTest):
 
     def test_extend(self):
         vol = objects.Volume(self.backend_name, status='available', size=10)
-        vol.extend(11)
+        res = vol.extend(11)
 
+        self.assertEqual(11 * (1024 ** 3), res)  # size is in bytes not GBi
         self.backend.driver.extend_volume.assert_called_once_with(vol._ovo, 11)
         self.persistence.set_volume.assert_called_once_with(vol)
         self.assertEqual('available', vol.status)
+        self.assertEqual(11, vol.size)
+
+    def test_extend_attached(self):
+        vol = objects.Volume(self.backend_name, status='in-use', size=10)
+        vol.local_attach = mock.Mock()
+        res = vol.extend(11)
+
+        self.assertEqual(vol.local_attach.extend.return_value, res)
+        self.backend.driver.extend_volume.assert_called_once_with(vol._ovo, 11)
+        vol.local_attach.extend.assert_called_once_with()
+        self.persistence.set_volume.assert_called_once_with(vol)
+        self.assertEqual('in-use', vol.status)
         self.assertEqual(11, vol.size)
 
     def test_extend_error(self):

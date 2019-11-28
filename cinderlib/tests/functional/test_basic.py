@@ -179,6 +179,28 @@ class BackendFunctBasic(base_tests.BaseFunctTestCase):
         result_new_size = self._get_vol_size(vol)
         self.assertSize(new_size, result_new_size)
 
+    def test_extend_attached(self):
+        vol = self._create_vol(self.backend)
+        original_size = vol.size
+        # Attach, get size, and leave volume attached
+        result_original_size = self._get_vol_size(vol, do_detach=False)
+        self.assertSize(original_size, result_original_size)
+
+        new_size = vol.size + 1
+        # Extending the volume should also extend the local view of the volume
+        reported_size = vol.extend(new_size)
+
+        # The instance size must have been updated
+        self.assertEqual(new_size, vol.size)
+        self.assertEqual(new_size, vol._ovo.size)
+
+        # Returned size must match the requested one
+        self.assertEqual(new_size * (1024 ** 3), reported_size)
+
+        # Get size of attached volume on the host and detach it
+        result_new_size = self._get_vol_size(vol)
+        self.assertSize(new_size, result_new_size)
+
     def test_clone(self):
         vol = self._create_vol(self.backend)
         original_size = self._get_vol_size(vol, do_detach=False)

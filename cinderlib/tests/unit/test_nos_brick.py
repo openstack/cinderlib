@@ -363,3 +363,19 @@ class TestRBDConnector(base.BaseTest):
         exists_mock.assert_called_once_with(link)
         remove_mock.assert_called_once_with(link)
         link_mock.assert_called_once_with(source, link)
+
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch.object(nos_brick.RBDConnector, '_get_vol_data')
+    def test_extend_volume(self, get_data_mock, open_mock):
+        get_data_mock.return_value = (
+            '/dev/rbd/rbd/volume-56539d26-2b78-49b8-8b96-160a62b0831f',
+            '/dev/rbd10')
+
+        cm_open = open_mock.return_value.__enter__.return_value
+        cm_open.read.return_value = '5368709120'
+        res = self.connector.extend_volume(mock.sentinel.connector_properties)
+
+        self.assertEqual(5 * (1024 ** 3), res)  # 5 GBi
+        get_data_mock.assert_called_once_with(
+            mock.sentinel.connector_properties)
+        open_mock.assert_called_once_with('/sys/devices/rbd/10/size')

@@ -256,6 +256,61 @@ know when instantiating the driver by passing the
         use_multipath_for_image_xfer=True,
     )
 
+Extend
+------
+
+The `Connection` object has an `extend` method that will refresh the host's
+view of an attached volume to reflect the latest size of the volume and return
+the new size in bytes.
+
+There is no need to manually call this method for volumes that are locally
+attached to the node that calls the `Volume`'s `extend` method, since that call
+takes care of it.
+
+When extending volumes that are attached to nodes other than the one calling
+the `Volume`'s `extend` method we will need to either detach and re-attach the
+volume on the host following the mechanisms explained above, or refresh the
+current view of the volume.
+
+How we refresh the host's view of an attached volume will depend on how we are
+attaching the volumes.
+
+With access to the metadata persistence storage
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In this case things are easier, just like it was on the
+`Remote connection`_.
+
+Assuming we have a `volume_id` variable with the volume, and `storage` has the
+`Backend` instance, all we need to do is:
+
+.. code-block:: python
+
+   vol = storage.Volume.get_by_id(volume_id)
+   vol.connections[0].extend()
+
+No access to the metadata persistence storage
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is more inconvenient, as you'll have to handle the data exchange manually
+as well as the *OS-Brick* library calls to do the extend.
+
+We'll need to get the connector information on the host that is going to do
+the attach.  Asuuming the dictionary is available in `connection_info` the
+code would look like this:
+
+.. code-block:: python
+
+    from os_brick.initiator import connector
+
+    connector_dict = connection_info['connector']
+    protocol = connection_info['conn']['driver_volume_type']
+
+    conn = connector.InitiatorConnector.factory(
+        protocol, 'sudo', user_multipath=True,
+        device_scan_attempts=3, conn=connector_dict)
+    conn.extend()
+
 Multi attach
 ------------
 

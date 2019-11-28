@@ -224,15 +224,23 @@ The only parameter received by the `extend` method is the new size, and this
 must always be greater than the current value because *cinderlib* is not
 validating this at the moment.
 
+The call will return the new size of the volume in bytes.
+
 Example of creating, extending, and deleting a volume:
 
 .. code-block:: python
 
     vol = lvm.create_volume(size=1)
     print('Vol %s has %s GBi' % (vol.id, vol.size))
-    vol.extend(2)
+    new_size = vol.extend(2)
     print('Extended vol %s has %s GBi' % (vol.id, vol.size))
+    print('Detected new size is %s bytes' % new_size)
     vol.delete()
+
+A call to `extend` on a locally attached volume will automatically update the
+host's view of the volume to reflect the new size.  For non locally attached
+volumes please refer to the `extend section in the connections
+<connections.html#extend>`_ section.
 
 Other methods
 -------------

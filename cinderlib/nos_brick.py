@@ -148,6 +148,13 @@ class RBDConnector(connectors.rbd.RBDConnector):
             return False
         return True
 
+    def _get_vol_data(self, connection_properties):
+        self._setup_rbd_class()
+        pool, volume = connection_properties['name'].split('/')
+        link_name = self.get_rbd_device_name(pool, volume)
+        real_dev_path = os.path.realpath(link_name)
+        return link_name, real_dev_path
+
     def _unmap(self, real_dev_path, conf_file, connection_properties):
         if os.path.exists(real_dev_path):
             cmd = ['rbd', 'unmap', real_dev_path, '--conf', conf_file]
@@ -157,11 +164,8 @@ class RBDConnector(connectors.rbd.RBDConnector):
 
     def disconnect_volume(self, connection_properties, device_info,
                           force=False, ignore_errors=False):
-        self._setup_rbd_class()
-        pool, volume = connection_properties['name'].split('/')
         conf_file = device_info['conf']
-        link_name = self.get_rbd_device_name(pool, volume)
-        real_dev_path = os.path.realpath(link_name)
+        link_name, real_dev_path = self._get_vol_data(connection_properties)
 
         self._unmap(real_dev_path, conf_file, connection_properties)
         if self.containerized:
@@ -192,6 +196,20 @@ class RBDConnector(connectors.rbd.RBDConnector):
 
         # Don't check again to speed things on following connections
         RBDConnector._setup_rbd_class = lambda *args: None
+
+    def extend_volume(self, connection_properties):
+        """Refresh local volume view and return current size in bytes."""
+        # Nothing to do, RBD attached volumes are automatically refreshed, but
+        # we need to return the new size for compatibility
+        link_name, real_dev_path = self._get_vol_data(connection_properties)
+
+        device_name = os.path.basename(real_dev_path)  # ie: rbd0
+        device_number = device_name[3:]  # ie: 0
+        # Get size from /sys/devices/rbd/0/size instead of
+        # /sys/class/block/rbd0/size because the latter isn't updated
+        with open('/sys/devices/rbd/' + device_number + '/size') as f:
+            size_bytes = f.read().strip()
+        return int(size_bytes)
 
     _setup_rbd_class = _setup_class
 
