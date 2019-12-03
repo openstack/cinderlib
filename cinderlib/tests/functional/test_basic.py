@@ -211,6 +211,7 @@ class BackendFunctBasic(base_tests.BaseFunctTestCase):
 
         new_vol = vol.clone()
         self.assertEqual(vol.size, new_vol.size)
+        self.assertEqual(vol.id, new_vol.source_volid)
 
         cloned_size = self._get_vol_size(new_vol, do_detach=False)
         read_data = self._read_data(new_vol, len(data))
