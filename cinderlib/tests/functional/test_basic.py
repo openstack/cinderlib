@@ -173,7 +173,10 @@ class BackendFunctBasic(base_tests.BaseFunctTestCase):
         self.assertSize(original_size, result_original_size)
 
         new_size = vol.size + 1
-        vol.extend(new_size)
+        # Retrieve the volume from the persistence storage to ensure lazy
+        # loading works. Prevent regression after fixing bug #1852629
+        vol_from_db = self.backend.persistence.get_volumes(vol.id)[0]
+        vol_from_db.extend(new_size)
 
         self.assertEqual(new_size, vol.size)
         result_new_size = self._get_vol_size(vol)
