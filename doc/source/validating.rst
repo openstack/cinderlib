@@ -169,6 +169,11 @@ functional tests using environmental variables:
 - ``CL_FTEST_CFG```: Location of the configuration file. Defaults to
   ``/etc/cinder/cinder.conf``.
 
+- ``CL_FTEST_POOL_NAME``: If our backend has multi-pool support and we have
+  configured multiple pools we can use this parameter to define which pool to
+  use for the functional tests.  If not defined it will use the first reported
+  pool.
+
 If we encounter problems while running the functional tests, but the *Cinder*
 service is running just fine, we can go to the #openstack-cinder IRC channel in
 Freenode, or send an email to the `discuss-openstack mailing list`_ starting
@@ -371,8 +376,8 @@ provisioning- on a per volume basis.
 
 *Cinderlib* supports these features, but since they are driver specific, there
 is no automated testing in *cinderlib*'s functional tests; but we can test them
-them manually ourselves using the ``extra_specs``, ``qos_specs`` and
-``pool_name`` parameters in the ``create_volume`` and ``clone`` methods.
+manually ourselves using the ``extra_specs``, ``qos_specs`` and ``pool_name``
+parameters in the ``create_volume`` and ``clone`` methods.
 
 We can see the list of available pools in multi-pool drivers on the
 ``pool_names`` property in the Backend instance.

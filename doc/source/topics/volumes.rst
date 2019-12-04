@@ -109,7 +109,7 @@ Some of the fields we could be interested in are:
 - `host`: Used to store the backend name information together with the host
   name where cinderlib is running.  This information is stored as a string in
   the form of *host@backend#pool*.  This is an optional parameter, and passing
-  it to `create_volume` will override default value, allowing us caller to
+  it to `create_volume` will override default value, allowing our caller to
   request a specific pool for multi-pool backends, though we recommend using
   the `pool_name` parameter instead. Issues will arise if parameter doesn't
   contain correct information.

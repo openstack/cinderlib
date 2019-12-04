@@ -7,3 +7,4 @@
     tox_environment:
       CL_FTEST_CFG: "{{ cinderlib_config_file }}"
       CL_FTEST_ROOT_HELPER: "{{ cinderlib_root_helper }}"
+      CL_FTEST_POOL_NAME: "{{ cinderlib_pool_name }}"

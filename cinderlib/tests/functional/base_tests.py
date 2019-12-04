@@ -64,6 +64,7 @@ class BaseFunctTestCase(unittest2.TestCase):
     LOGGING_ENABLED = get_bool_env('CL_FTEST_LOGGING', False)
     ROOT_HELPER = os.environ.get('CL_FTEST_ROOT_HELPER', 'sudo')
     MEMORY_PERSISTENCE = get_bool_env('CL_FTEST_MEMORY_PERSISTENCE', True)
+    DEFAULT_POOL = os.environ.get('CL_FTEST_POOL_NAME', None)
     tests_config = None
 
     @classmethod
@@ -174,6 +175,7 @@ class BaseFunctTestCase(unittest2.TestCase):
 
         vol_size = kwargs.setdefault('size', 1)
         name = kwargs.setdefault('name', backend.id)
+        kwargs.setdefault('pool_name', self.DEFAULT_POOL)
 
         vol = backend.create_volume(**kwargs)
 
