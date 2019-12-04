@@ -14,6 +14,7 @@
 #    under the License.
 
 import os
+import random
 
 import cinderlib
 from cinderlib.tests.functional import base_tests
@@ -48,31 +49,39 @@ class BackendFunctBasic(base_tests.BaseFunctTestCase):
         return sum(p.get('total_volumes', 0) for p in pools_info)
 
     def test_stats_with_creation(self):
-        # This test can fail if we are don't have exclusive usage of the
-        # storage pool used in the tests or if the specific driver does not
-        # return the right values in allocated_capacity_gb or
-        # provisioned_capacity_gb.
         initial_stats = self.backend.stats(refresh=True)
-        vol = self._create_vol(self.backend)
-        new_stats = self.backend.stats(refresh=True)
-
         initial_pools_info = self._pools_info(initial_stats)
-        new_pools_info = self._pools_info(new_stats)
-
         initial_volumes = self._volumes_in_pools(initial_pools_info)
-        new_volumes = self._volumes_in_pools(new_pools_info)
-
-        # If the backend is reporting the number of volumes, check them
-        if initial_volumes is not None:
-            self.assertEqual(initial_volumes + 1, new_volumes)
-
         initial_size = sum(p.get('allocated_capacity_gb',
                                  p.get('provisioned_capacity_gb', 0))
                            for p in initial_pools_info)
+
+        size = random.randint(1, 5)
+        vol = self._create_vol(self.backend, size=size)
+
+        # Check that without refresh we get the same data
+        duplicate_stats = self.backend.stats(refresh=False)
+        self.assertEqual(initial_stats, duplicate_stats)
+
+        new_stats = self.backend.stats(refresh=True)
+        new_pools_info = self._pools_info(new_stats)
+        new_volumes = self._volumes_in_pools(new_pools_info)
         new_size = sum(p.get('allocated_capacity_gb',
                              p.get('provisioned_capacity_gb', vol.size))
                        for p in new_pools_info)
-        self.assertEqual(initial_size + vol.size, new_size)
+
+        # We could be sharing the pool with other CI jobs or with parallel
+        # executions of this same one, so we cannot check that we have 1 more
+        # volume and 1 more GB used, so we just check that the values have
+        # changed.  This could still fail if another job just deletes 1 volume
+        # of the same size, that's why we randomize the size, to reduce the
+        # risk of the volumes having the same size.
+
+        # If the backend is reporting the number of volumes, check them
+        if initial_volumes is not None:
+            self.assertNotEqual(initial_volumes, new_volumes)
+
+        self.assertNotEqual(initial_size, new_size)
 
     def test_create_volume(self):
         vol = self._create_vol(self.backend)
