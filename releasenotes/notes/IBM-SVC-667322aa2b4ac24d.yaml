@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Bug #1821898: Improve compatibility with Cinder drivers that access the DB
+    directly.  This allows cinderlib to support IBM SVC.
