@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Bug #1819706: Support setting attach_mode on attach and connect calls.

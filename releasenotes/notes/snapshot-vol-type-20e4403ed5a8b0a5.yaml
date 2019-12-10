@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Bug #1836724: Fix create snapshot from a volume with volume type.

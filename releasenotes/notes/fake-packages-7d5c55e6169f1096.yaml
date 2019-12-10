@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Fake unused packages: Many packages that are automatically imported when
+    loading cinder modules are only used for normal Cinder operation and are
+    not necessary for cinderlib's execution.  For example when loading a Cinder
+    module to get configuration options but without executing the code present
+    in the module.
+
+    We now fake these unnecessary packages, providing faster load times,
+    reduced footprint, and the possibility for distributions to create a
+    cinderlib package or containers with up to 40% fewer dependencies.
