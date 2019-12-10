@@ -13,8 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
+
 import mock
 from oslo_config import cfg
+from oslo_config import types
 
 import cinderlib
 from cinderlib import objects
@@ -72,6 +75,7 @@ class TestCinderlib(base.BaseTest):
         driver.get_volume_stats.assert_not_called()
         self.assertEqual(('default',), backend.pool_names)
 
+    @mock.patch('cinderlib.Backend._Backend__convert_option_to_string')
     @mock.patch('urllib3.disable_warnings')
     @mock.patch('cinder.coordination.COORDINATOR')
     @mock.patch('cinderlib.Backend._set_priv_helper')
@@ -79,7 +83,9 @@ class TestCinderlib(base.BaseTest):
     @mock.patch('cinderlib.cinderlib.serialization')
     @mock.patch('cinderlib.Backend.set_persistence')
     def test_global_setup(self, mock_set_pers, mock_serial, mock_log,
-                          mock_sudo, mock_coord, mock_disable_warn):
+                          mock_sudo, mock_coord, mock_disable_warn,
+                          mock_convert_to_str):
+        mock_convert_to_str.side_effect = lambda *args: args[1]
         cls = objects.Backend
         cls.global_initialization = False
         cinder_cfg = {'k': 'v', 'k2': 'v2'}
@@ -247,3 +253,135 @@ class TestCinderlib(base.BaseTest):
         self.backend._volumes = None
         self.backend.refresh()
         self.persistence.get_volumes.assert_not_called()
+
+    def test___get_options_types(self):
+        # Before knowing the driver we don't have driver specific options.
+        opts = self.backend._Backend__get_options_types({})
+        self.assertNotIn('volume_group', opts)
+        # But we do have the basic options
+        self.assertIn('volume_driver', opts)
+
+        # When we know the driver the method can load it to retrieve its
+        # specific options.
+        cfg = {'volume_driver': 'cinder.volume.drivers.lvm.LVMVolumeDriver'}
+        opts = self.backend._Backend__get_options_types(cfg)
+        self.assertIn('volume_group', opts)
+
+    def test___val_to_str_integer(self):
+        res = self.backend._Backend__val_to_str(1)
+        self.assertEqual('1', res)
+
+    def test___val_to_str_list_tuple(self):
+        val = ['hola', 'hello']
+        expected = '[hola,hello]'
+        res = self.backend._Backend__val_to_str(val)
+        self.assertEqual(expected, res)
+        # Same with a tuple
+        res = self.backend._Backend__val_to_str(tuple(val))
+        self.assertEqual(expected, res)
+
+    @staticmethod
+    def odict(*args):
+        res = collections.OrderedDict()
+        for i in range(0, len(args), 2):
+            res[args[i]] = args[i + 1]
+        return res
+
+    def test___val_to_str_dict(self):
+        val = self.odict('k1', 'v1', 'k2', 2)
+        res = self.backend._Backend__val_to_str(val)
+        self.assertEqual('k1:v1,k2:2', res)
+
+    def test___val_to_str_recursive(self):
+        val = self.odict('k1', ['hola', 'hello'], 'k2', [1, 2])
+        expected = 'k1:[hola,hello],k2:[1,2]'
+        res = self.backend._Backend__val_to_str(val)
+        self.assertEqual(expected, res)
+
+    @mock.patch('cinderlib.Backend._Backend__val_to_str')
+    def test___convert_option_to_string_int(self, convert_mock):
+        PortType = types.Integer(1, 65535)
+        opt = cfg.Opt('port', type=PortType, default=9292, help='Port number')
+        opts = {'port': {'opt': opt, 'cli': False}}
+        res = self.backend._Backend__convert_option_to_string(
+            'port', 12345, opts)
+        self.assertEqual(convert_mock.return_value, res)
+        convert_mock.assert_called_once_with(12345)
+
+    @mock.patch('cinderlib.Backend._Backend__val_to_str')
+    def test___convert_option_to_string_listopt(self, convert_mock):
+        opt = cfg.ListOpt('my_opt', help='my cool option')
+        opts = {'my_opt': {'opt': opt, 'cli': False}}
+        res = self.backend._Backend__convert_option_to_string(
+            'my_opt', [mock.sentinel.value], opts)
+        self.assertEqual(convert_mock.return_value, res)
+        convert_mock.assert_called_once_with([mock.sentinel.value])
+
+        # Same result if we don't pass a list, since method converts it
+        convert_mock.reset_mock()
+        res = self.backend._Backend__convert_option_to_string(
+            'my_opt', mock.sentinel.value, opts)
+        self.assertEqual(convert_mock.return_value, res)
+        convert_mock.assert_called_once_with([mock.sentinel.value])
+
+    @mock.patch('cinderlib.Backend._Backend__val_to_str')
+    def test___convert_option_to_string_multistr_one(self, convert_mock):
+        convert_mock.side_effect = lambda x: x
+        opt = cfg.MultiStrOpt('my_opt', default=['default'], help='help')
+        opts = {'my_opt': {'opt': opt, 'cli': False}}
+        res = self.backend._Backend__convert_option_to_string(
+            'my_opt', ['value1'], opts)
+        self.assertEqual('value1', res)
+        convert_mock.assert_called_once_with('value1')
+
+        # Same result if we don't pass a list, since method converts it
+        convert_mock.reset_mock()
+        res = self.backend._Backend__convert_option_to_string(
+            'my_opt', 'value1', opts)
+        self.assertEqual('value1', res)
+        convert_mock.assert_called_once_with('value1')
+
+    @mock.patch('cinderlib.Backend._Backend__val_to_str')
+    def test___convert_option_to_string_multistr(self, convert_mock):
+        convert_mock.side_effect = lambda x: x
+        opt = cfg.MultiStrOpt('my_opt', default=['default'], help='help')
+        opts = {'my_opt': {'opt': opt, 'cli': False}}
+        res = self.backend._Backend__convert_option_to_string(
+            'my_opt', ['value1', 'value2'], opts)
+        self.assertEqual('value1\nmy_opt = value2', res)
+        self.assertEqual(2, convert_mock.call_count)
+        convert_mock.assert_has_calls([mock.call('value1'),
+                                       mock.call('value2')])
+
+    def test___convert_option_to_string_multiopt(self):
+        opt = cfg.MultiOpt('my_opt', item_type=types.Dict())
+        opts = {'my_opt': {'opt': opt, 'cli': False}}
+        elem1 = self.odict('v1_k1', 'v1_v1', 'v1_k2', 'v1_v2')
+        elem2 = self.odict('v2_k1', 'v2_v1', 'v2_k2', 'v2_v2')
+        res = self.backend._Backend__convert_option_to_string(
+            'my_opt', [elem1, elem2], opts)
+        expect = 'v1_k1:v1_v1,v1_k2:v1_v2\nmy_opt = v2_k1:v2_v1,v2_k2:v2_v2'
+        self.assertEqual(expect, res)
+
+    @mock.patch('cinderlib.Backend._parser')
+    @mock.patch('cinderlib.Backend._Backend__convert_option_to_string')
+    @mock.patch('cinderlib.Backend._Backend__get_options_types')
+    def test___set_parser_kv(self, types_mock, convert_mock, parser_mock):
+        convert_mock.side_effect = [mock.sentinel.res1, mock.sentinel.res2]
+        section = mock.sentinel.section
+        kvs = self.odict('k1', 1, 'k2', 2)
+
+        self.backend._Backend__set_parser_kv(kvs, section)
+
+        types_mock.assert_called_once_with(kvs)
+        self.assertEqual(2, convert_mock.call_count)
+        convert_mock.assert_has_calls(
+            [mock.call('k1', 1, types_mock.return_value),
+             mock.call('k2', 2, types_mock.return_value)],
+            any_order=True)
+
+        self.assertEqual(2, parser_mock.set.call_count)
+        parser_mock.set.assert_has_calls(
+            [mock.call(section, 'k1', mock.sentinel.res1),
+             mock.call(section, 'k2', mock.sentinel.res2)],
+            any_order=True)

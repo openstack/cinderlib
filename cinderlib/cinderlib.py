@@ -250,24 +250,94 @@ class Backend(object):
                  default_config_files=['in_memory_file'])
         cls._update_cinder_config()
 
+    @staticmethod
+    def __get_options_types(kvs):
+        """Get loaded oslo options and load driver if we know it."""
+        # Dynamically loading the driver triggers adding the specific
+        # configuration options to the backend_defaults section
+        if 'volume_driver' in kvs:
+            driver_ns = kvs['volume_driver'].rsplit('.', 1)[0]
+            __import__(driver_ns)
+        opts = configuration.CONF._groups['backend_defaults']._opts
+        return opts
+
+    @classmethod
+    def __val_to_str(cls, val):
+        """Convert an oslo config value to its string representation.
+
+        Lists and tuples are treated as ListOpt classes and converted to
+        "[value1,value2]" instead of the standard string representation of
+        "['value1','value2']".
+
+        Dictionaries are treated as DictOpt and converted to 'k1:v1,k2:v2"
+        instead of the standard representation of "{'k1':'v1','k2':'v2'}".
+
+        Anything else is converted to a string.
+        """
+        if isinstance(val, six.string_types):
+            return val
+
+        # Recursion is used to to handle options like u4p_failover_target that
+        # is a MultiOpt where each entry is a dictionary.
+        if isinstance(val, (list, tuple)):
+            return '[' + ','.join((cls.__val_to_str(v) for v in val)) + ']'
+
+        if isinstance(val, dict):
+            return ','.join('%s:%s' % (k, cls.__val_to_str(v))
+                            for k, v in val.items())
+
+        return six.text_type(val)
+
+    @classmethod
+    def __convert_option_to_string(cls, key, val, opts):
+        """Convert a Cinder driver cfg option into oslo config file format.
+
+        A single Python object represents multiple Oslo config types. For
+        example a list can be a ListOpt or a MultOpt, and their string
+        representations on a file are different.
+
+        This method uses the configuration option types to return the right
+        string representation.
+        """
+        opt = opts[key]['opt']
+
+        # Convert to a list for ListOpt opts were the caller didn't pass a list
+        if (isinstance(opt, cfg.ListOpt) and
+                not isinstance(val, (list, tuple))):
+            val = [val]
+
+        # For MultiOpt we need multiple entries in the file but ConfigParser
+        # doesn't support repeating the same entry multiple times, so we hack
+        # our way around it
+        elif isinstance(opt, cfg.MultiOpt):
+            if not isinstance(val, (list, tuple)):
+                val = [val] if val else []
+            val = [cls.__val_to_str(v) for v in val]
+            if not val:
+                val = ''
+            elif len(val) == 1:
+                val = val[0]
+            else:
+                val = (('%s\n' % val[0]) +
+                       '\n'.join('%s = %s' % (key, v) for v in val[1:]))
+
+        # This will handle DictOpt and ListOpt
+        if not isinstance(val, six.string_types):
+            val = cls.__val_to_str(val)
+        return val
+
     @classmethod
     def __set_parser_kv(cls, kvs, section):
-        for key, val in kvs.items():
-            # We receive list or tuple for multiopt and ConfigParser doesn't
-            # support repeating the same entry multiple times, so we hack our
-            # way around it
-            if isinstance(val, (list, tuple)):
-                if not val:
-                    val = ''
-                elif len(val) == 1:
-                    val = val[0]
-                else:
-                    val = (('%s\n' % val[0]) +
-                           '\n'.join('%s = %s' % (key, v) for v in val[1:]))
+        """Set Oslo configuration options in our parser.
 
-            if not isinstance(val, six.string_types):
-                val = six.text_type(val)
-            cls._parser.set(section, key, val)
+        The Oslo parser needs to have the configuration options like they are
+        in a file, but we have them as Python objects, so we need to set them
+        for the parser in the format it is expecting them, strings.
+        """
+        opts = cls.__get_options_types(kvs)
+        for key, val in kvs.items():
+            string_val = cls.__convert_option_to_string(key, val, opts)
+            cls._parser.set(section, key, string_val)
 
     def _set_backend_config(self, driver_cfg):
         backend_name = driver_cfg['volume_backend_name']
