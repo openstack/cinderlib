@@ -21,3 +21,8 @@ Run cinderlib tests
    :default: sudo
 
    The command used by the tests to gain root capabilities.
+
+.. zuul:rolevar:: cinderlib_pool_name
+   :default: The first pool reported by the backend
+
+   Pool name used to create volumes.
