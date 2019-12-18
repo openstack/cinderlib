@@ -223,12 +223,12 @@ VMAX
           hpe3par_api_url: https://w.x.y.z:8080/api/v1
           hpe3par_username: user
           hpe3par_password: toomanysecrets
-          hpe3par_cpg: CPG_name
+          hpe3par_cpg: [CPG_name]
           san_ip: w.x.y.z
           san_login: user
           san_password: toomanysecrets
           volume_driver: cinder.volume.drivers.hpe.hpe_3par_iscsi.HPE3PARISCSIDriver
-          hpe3par_iscsi_ips: w.x.y2.z2,w.x.y2.z3,w.x.y2.z4,w.x.y2.z4
+          hpe3par_iscsi_ips: [w.x.y2.z2,w.x.y2.z3,w.x.y2.z4,w.x.y2.z4]
           hpe3par_debug: false
           hpe3par_iscsi_chap_enabled: false
           hpe3par_snapshot_retention: 0
