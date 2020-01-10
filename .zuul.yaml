@@ -6,7 +6,6 @@
       queue: integrated
       jobs:
         - openstack-tox-pep8
-        - cinderlib-tox-py27
         - cinderlib-tox-py36
         - cinderlib-tox-py37
 
@@ -16,7 +15,6 @@
       queue: integrated
       jobs:
         - openstack-tox-pep8
-        - cinderlib-tox-py27
         - cinderlib-tox-py36
         - cinderlib-tox-py37
 
@@ -25,13 +23,6 @@
     post:
       jobs:
         - publish-openstack-python-branch-tarball
-
-- job:
-    name: cinderlib-tox-py27
-    parent: openstack-tox-py27
-    required-projects:
-      - openstack/os-brick
-      - openstack/cinder
 
 - job:
     name: cinderlib-tox-py36
@@ -54,7 +45,7 @@
       - openstack/os-brick
       - openstack/cinder
     pre-run: playbooks/setup-lvm.yaml
-    nodeset: centos-7
+    nodeset: centos-8
     vars:
       tox_environment:
         CL_FTEST_MEMORY_PERSISTENCE: "false"
@@ -75,7 +66,8 @@
       - openstack/os-brick
       - openstack/cinder
     pre-run: playbooks/setup-ceph.yaml
-    nodeset: centos-7
+    # TODO: move back to centos-8 as soon as Ceph packages are available
+    nodeset: ubuntu-bionic
     vars:
       tox_environment:
         CL_FTEST_CFG: "{{ ansible_user_dir }}/{{ zuul.projects['opendev.org/openstack/cinderlib'].src_dir }}/cinderlib/tests/functional/ceph.yaml"

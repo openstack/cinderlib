@@ -22,14 +22,6 @@
   vars:
     ansible_become: yes
   tasks:
-      # Tox job has in its pre.yaml the ensure-tox role, which installs tox
-      # from pip, which brings six from pip.  This conflicts with ceph-common's
-      # python-six dependency.
-      - name: Remove pip's six from the system
-        pip:
-          name: six
-          state: absent
-
       # Leave pyparsing, as it's needed by tox through the packaging library.
       - name: Remove Python packages unnecessary for cinderlib
         pip:
@@ -41,14 +33,17 @@
                  'oslo_upgradecheck', 'googleapiclient', 'pastedeploy']
           state: absent
 
-      - name: Install ceph-common and epel-release
+      - name: Install ceph requirements
         yum:
-          name: ['epel-release', 'ceph-common']
+          name:
+            - ceph-common
+            - python3-rados
+            - python3-rbd
           state: present
 
-      - name: Install Docker from epel
+      - name: Install Docker
         yum:
-          name: 'docker'
+          name: 'docker.io'
           state: present
 
       - name: Start Docker

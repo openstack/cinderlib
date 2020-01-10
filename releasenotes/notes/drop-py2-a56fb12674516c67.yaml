@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Python 2.7 support has been dropped. OpenStack Train ships the last release
+    of cinderlib with py2.7 support (1.x). The minimum version of Python now
+    supported by cinderlib is Python 3.6.

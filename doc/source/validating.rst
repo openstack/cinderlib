@@ -297,7 +297,7 @@ provides a custom configuration YAML file with the backend configuration::
          - openstack/os-brick
          - openstack/cinder
        pre-run: playbooks/setup-ceph.yaml
-       nodeset: centos-7
+       nodeset: ubuntu-bionic
        vars:
          tox_environment:
            CL_FTEST_CFG: "cinderlib/tests/functional/ceph.yaml"

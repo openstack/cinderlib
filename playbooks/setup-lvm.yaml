@@ -29,11 +29,6 @@
           name: lvm2
           state: present
 
-      - name: Start LVM metadata
-        service:
-            name: lvm2-lvmetad
-            state: started
-
       - name: Create LVM backing file
         command: "truncate -s 10G {{vg}}"
         args:
@@ -59,9 +54,11 @@
       - command: "vgscan --cache"
         changed_when: false
 
-      - name: Install iSCSI package
+      - name: Install iSCSI packages
         package:
-          name: iscsi-initiator-utils
+          name:
+            - iscsi-initiator-utils
+            - targetcli
           state: present
 
       - name: Create initiator name

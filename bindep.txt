@@ -5,6 +5,9 @@
 build-essential [platform:dpkg test]
 gcc [platform:rpm test]
 
+python3 [platform:redhat test]
+python3-devel [platform:redhat test]
+
 # gettext and graphviz are needed by doc builds only. For transition,
 # have them in both doc and test.
 # TODO(jaegerandi): Remove test once infra scripts are updated.
