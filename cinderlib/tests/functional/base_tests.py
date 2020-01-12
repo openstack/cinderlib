@@ -17,11 +17,11 @@ import functools
 import os
 import subprocess
 import tempfile
+import unittest
 
 from oslo_config import cfg
 from oslo_utils import strutils
 import six
-import unittest2
 import yaml
 
 import cinderlib
@@ -57,7 +57,7 @@ def get_bool_env(param_string, default=False):
     return strutils.bool_from_string(param, strict=True)
 
 
-class BaseFunctTestCase(unittest2.TestCase):
+class BaseFunctTestCase(unittest.TestCase):
     FNULL = open(os.devnull, 'w')
     CONFIG_FILE = os.environ.get('CL_FTEST_CFG', '/etc/cinder/cinder.conf')
     PRECISION = os.environ.get('CL_FTEST_PRECISION', 0)

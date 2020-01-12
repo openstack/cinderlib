@@ -386,7 +386,7 @@ class BasePersistenceTest(helper.TestHelper):
     @mock.patch('cinderlib.persistence.base.DB.volume_type_get')
     def test__volume_type_get_by_name(self, get_mock):
         # Only test when using our fake DB class.  We cannot use
-        # unittest2.skipUnless because persistence is configure in setUpClass,
+        # unittest.skipUnless because persistence is configure in setUpClass,
         # which is called after the decorator.
         if not isinstance(cinderlib.objects.Backend.persistence.db,
                           persistence_base.DB):
@@ -414,7 +414,7 @@ class BasePersistenceTest(helper.TestHelper):
 
     def test_volume_get_all_by_host(self):
         # Only test when using our fake DB class.  We cannot use
-        # unittest2.skipUnless because persistence is configure in setUpClass,
+        # unittest.skipUnless because persistence is configure in setUpClass,
         # which is called after the decorator.
         if not isinstance(cinderlib.objects.Backend.persistence.db,
                           persistence_base.DB):
@@ -442,7 +442,7 @@ class BasePersistenceTest(helper.TestHelper):
 
     def test__volume_admin_metadata_get(self):
         # Only test when using our fake DB class.  We cannot use
-        # unittest2.skipUnless because persistence is configure in setUpClass,
+        # unittest.skipUnless because persistence is configure in setUpClass,
         # which is called after the decorator.
         if not isinstance(cinderlib.objects.Backend.persistence.db,
                           persistence_base.DB):
@@ -457,7 +457,7 @@ class BasePersistenceTest(helper.TestHelper):
 
     def test__volume_admin_metadata_update(self):
         # Only test when using our fake DB class.  We cannot use
-        # unittest2.skipUnless because persistence is configure in setUpClass,
+        # unittest.skipUnless because persistence is configure in setUpClass,
         # which is called after the decorator.
         if not isinstance(cinderlib.objects.Backend.persistence.db,
                           persistence_base.DB):
@@ -480,7 +480,7 @@ class BasePersistenceTest(helper.TestHelper):
 
     def test__volume_admin_metadata_update_do_nothing(self):
         # Only test when using our fake DB class.  We cannot use
-        # unittest2.skipUnless because persistence is configure in setUpClass,
+        # unittest.skipUnless because persistence is configure in setUpClass,
         # which is called after the decorator.
         if not isinstance(cinderlib.objects.Backend.persistence.db,
                           persistence_base.DB):
@@ -504,7 +504,7 @@ class BasePersistenceTest(helper.TestHelper):
 
     def test_volume_admin_metadata_delete(self):
         # Only test when using our fake DB class.  We cannot use
-        # unittest2.skipUnless because persistence is configure in setUpClass,
+        # unittest.skipUnless because persistence is configure in setUpClass,
         # which is called after the decorator.
         if not isinstance(cinderlib.objects.Backend.persistence.db,
                           persistence_base.DB):

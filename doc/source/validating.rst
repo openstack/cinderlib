@@ -131,7 +131,7 @@ run:
 
 .. code-block:: shell
 
-   $ python -m unittest2 discover -v cinderlib.tests.functional
+   $ python -m unittest discover -v cinderlib.tests.functional
 
    test_attach_detach_volume_on_lvmdriver-1 (cinderlib.tests.functional.test_basic.BackendFunctBasic) ... ok
    test_attach_detach_volume_via_attachment_on_lvmdriver-1 (cinderlib.tests.functional.test_basic.BackendFunctBasic) ... ok
@@ -310,7 +310,7 @@ provides a custom configuration YAML file with the backend configuration::
 For jobs in the *cinderlib* project you can use the
 ``openstack-tox-functional-with-sudo`` parent, but for jobs in the *Cinder*
 project you'll have to call this yourself by calling tox or using the same
-command we used during our manual testing:  ``python -m unittest2 discover -v
+command we used during our manual testing:  ``python -m unittest discover -v
 cinderlib.tests.functional``.
 
 Use existing job

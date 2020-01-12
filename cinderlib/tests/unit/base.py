@@ -15,7 +15,7 @@
 
 
 import mock
-import unittest2
+import unittest
 
 from oslo_config import cfg
 import six
@@ -38,7 +38,7 @@ _replace_oslo_cli_parse()
 cinderlib.setup(persistence_config={'storage': utils.get_mock_persistence()})
 
 
-class BaseTest(unittest2.TestCase):
+class BaseTest(unittest.TestCase):
     PERSISTENCE_CFG = None
 
     def setUp(self):
