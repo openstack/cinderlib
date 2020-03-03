@@ -100,5 +100,5 @@ Table of Contents
    usage
    validated
    validating
-   contributing
    limitations
+   contributor/contributing
