@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Bug #1868145: Support rolling upgrades with the DBMS persistence plugin.
+    Can run an N release version even if we have already run once an N+1
+    release.
