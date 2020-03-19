@@ -48,6 +48,8 @@
     nodeset: centos-8
     vars:
       tox_environment:
+        # Workaround for https://github.com/pypa/pip/issues/6264
+        PIP_OPTIONS: "--no-use-pep517"
         CL_FTEST_MEMORY_PERSISTENCE: "false"
         # These come from great-great-grandparent tox job
         NOSE_WITH_HTML_OUTPUT: 1

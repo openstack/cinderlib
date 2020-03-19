@@ -60,6 +60,8 @@ class TestDBPersistence(base.BasePersistenceTest):
 
     def test_set_snapshot(self):
         vol = cinderlib.Volume(self.backend, size=1, name='disk')
+        # This will assign a volume type, which is necessary for the snapshot
+        vol.save()
         snap = cinderlib.Snapshot(vol, name='disk')
 
         self.assertEqual(0, len(sqla_api.snapshot_get_all(self.context)))
