@@ -315,6 +315,10 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
                                              volume.volume_type.qos_specs_id)
         else:
             LOG.debug('hard deleting volume %s', volume.id)
+            for model in (models.VolumeMetadata, models.VolumeAdminMetadata):
+                query = sqla_api.model_query(objects.CONTEXT, model)
+                query.filter_by(volume_id=volume.id).delete()
+
             query = sqla_api.model_query(objects.CONTEXT, models.Volume)
             query.filter_by(id=volume.id).delete()
             if delete_type:

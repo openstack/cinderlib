@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Bug #1868148: Volume deletion no longer fails due to DB constraints when
+    using the DBMS metadata persistence plugin with a MySQL backend.

@@ -120,6 +120,21 @@ class TestDBPersistence(base.BasePersistenceTest):
                               cinder_ovos.VolumeType)
         self.assertEqual('__DEFAULT__', self.persistence.DEFAULT_TYPE.name)
 
+    def test_delete_volume_with_metadata(self):
+        vols = self.create_volumes([{'size': i, 'name': 'disk%s' % i,
+                                     'metadata': {'k': 'v', 'k2': 'v2'},
+                                     'admin_metadata': {'k': '1'}}
+                                    for i in range(1, 3)])
+        self.persistence.delete_volume(vols[0])
+        res = self.persistence.get_volumes()
+        self.assertListEqualObj([vols[1]], res)
+
+        for model in (dbms.models.VolumeMetadata,
+                      dbms.models.VolumeAdminMetadata):
+            query = dbms.sqla_api.model_query(self.context, model)
+            res = query.filter_by(volume_id=vols[0].id).all()
+            self.assertEqual([], res)
+
 
 class TestMemoryDBPersistence(TestDBPersistence):
     PERSISTENCE_CFG = {'storage': 'memory_db'}
