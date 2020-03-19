@@ -622,6 +622,7 @@ class Volume(NamedObject):
             last_self.snapshots
         if self._connections is not None:
             last_self.connections
+        last_self.local_attach = self.local_attach
         vars(self).clear()
         vars(self).update(vars(last_self))
 
