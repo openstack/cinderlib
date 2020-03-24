@@ -20,7 +20,7 @@ import cinderlib
 from cinderlib.tests.functional import base_tests
 
 
-class BaseFunctTestCase(base_tests.unittest2.TestCase):
+class BaseFunctTestCase(base_tests.unittest.TestCase):
     def test_list_supported_drivers(self):
         expected_keys = {'version', 'class_name', 'supported', 'ci_wiki_name',
                          'driver_options', 'class_fqn', 'desc'}
