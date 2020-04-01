@@ -14,9 +14,9 @@
 #    under the License.
 
 import errno
+from unittest import mock
 
 import ddt
-import mock
 from os_brick import exception
 
 from cinderlib import nos_brick

@@ -14,8 +14,8 @@
 #    under the License.
 
 
-import mock
 import unittest
+from unittest import mock
 
 from oslo_config import cfg
 import six

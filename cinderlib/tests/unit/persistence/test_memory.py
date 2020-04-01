@@ -13,8 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from unittest import mock
+
 from cinder import objects as ovos
-import mock
 
 import cinderlib
 from cinderlib import objects
