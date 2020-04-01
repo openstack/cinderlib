@@ -1,1 +1,1 @@
-cinder
+cinder>=15.0.0 # Apache-2.0
