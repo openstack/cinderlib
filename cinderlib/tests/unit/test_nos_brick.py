@@ -18,6 +18,7 @@ import errno
 import ddt
 import mock
 from os_brick import exception
+from oslo_concurrency import processutils as putils
 
 from cinderlib import nos_brick
 from cinderlib.tests.unit import base
@@ -379,3 +380,49 @@ class TestRBDConnector(base.BaseTest):
         get_data_mock.assert_called_once_with(
             mock.sentinel.connector_properties)
         open_mock.assert_called_once_with('/sys/devices/rbd/10/size')
+
+    @mock.patch('six.moves.builtins.open')
+    def test_check_valid_device_root(self, open_mock):
+        self.connector.im_root = True
+        res = self.connector.check_valid_device(mock.sentinel.path)
+        self.assertTrue(res)
+        open_mock.assert_called_once_with(mock.sentinel.path, 'rb')
+        read_mock = open_mock.return_value.__enter__.return_value.read
+        read_mock.assert_called_once_with(4096)
+
+    @mock.patch('six.moves.builtins.open')
+    def test_check_valid_device_root_fail_open(self, open_mock):
+        self.connector.im_root = True
+        open_mock.side_effect = OSError
+        res = self.connector.check_valid_device(mock.sentinel.path)
+        self.assertFalse(res)
+        open_mock.assert_called_once_with(mock.sentinel.path, 'rb')
+        read_mock = open_mock.return_value.__enter__.return_value.read
+        read_mock.assert_not_called()
+
+    @mock.patch('six.moves.builtins.open')
+    def test_check_valid_device_root_fail_read(self, open_mock):
+        self.connector.im_root = True
+        read_mock = open_mock.return_value.__enter__.return_value.read
+        read_mock.side_effect = IOError
+        res = self.connector.check_valid_device(mock.sentinel.path)
+        self.assertFalse(res)
+        open_mock.assert_called_once_with(mock.sentinel.path, 'rb')
+        read_mock.assert_called_once_with(4096)
+
+    @mock.patch.object(nos_brick.RBDConnector, '_execute')
+    def test_check_valid_device_non_root(self, exec_mock):
+        res = self.connector.check_valid_device('/tmp/path')
+        self.assertTrue(res)
+        exec_mock.assert_called_once_with(
+            'dd', 'if=/tmp/path', 'of=/dev/null', 'bs=4096', 'count=1',
+            root_helper=self.connector._root_helper, run_as_root=True)
+
+    @mock.patch.object(nos_brick.RBDConnector, '_execute')
+    def test_check_valid_device_non_root_fail(self, exec_mock):
+        exec_mock.side_effect = putils.ProcessExecutionError
+        res = self.connector.check_valid_device('/tmp/path')
+        self.assertFalse(res)
+        exec_mock.assert_called_once_with(
+            'dd', 'if=/tmp/path', 'of=/dev/null', 'bs=4096', 'count=1',
+            root_helper=self.connector._root_helper, run_as_root=True)

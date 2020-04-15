@@ -836,10 +836,12 @@ class Connection(Object, LazyVolumeAttr):
             LOG.exception(error_msg)
 
         if error_msg:
-            self.detach(force=True, ignore_errors=True)
-            raise cinder_exception.DeviceUnavailable(
+            # Prepare exception while we still have the value of the path
+            exc = cinder_exception.DeviceUnavailable(
                 path=self.path, attach_info=self._ovo.connection_info,
                 reason=error_msg)
+            self.detach(force=True, ignore_errors=True)
+            raise exc
         if self._volume:
             self.volume.local_attach = self
 

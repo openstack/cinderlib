@@ -134,7 +134,7 @@ class RBDConnector(connectors.rbd.RBDConnector):
         """Verify an existing RBD handle is connected and valid."""
         if self.im_root:
             try:
-                with open(path, 'r') as f:
+                with open(path, 'rb') as f:
                     f.read(4096)
             except Exception:
                 return False

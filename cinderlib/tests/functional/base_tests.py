@@ -78,6 +78,13 @@ class BaseFunctTestCase(unittest.TestCase):
                     cls.tests_config = yaml.safe_load(f)
             cls.tests_config.setdefault('logs', cls.LOGGING_ENABLED)
             cls.tests_config.setdefault('size_precision', cls.PRECISION)
+
+            backend = cls.tests_config['backends'][0]
+            if backend['volume_driver'].endswith('.RBDDriver'):
+                print('Cinderlib tests use config: %s' % cls.tests_config)
+                ceph_conf = open(backend['rbd_ceph_conf'], 'r').read()
+                print('Contents of ceph.conf are: %s' % ceph_conf)
+
         return cls.tests_config
 
     @staticmethod
