@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Bug #1868153: Volume refresh will no longer forget if the volume is locally
+    attached.

@@ -521,3 +521,41 @@ class BasePersistenceTest(helper.TestHelper):
         result = self.persistence.db._volume_admin_metadata_get(self.context,
                                                                 vols[0].id)
         self.assertDictEqual({'k': 'v'}, result)
+
+    @mock.patch('cinderlib.objects.Volume.get_by_id')
+    @mock.patch('cinderlib.objects.Volume.snapshots',
+                new_callable=mock.PropertyMock)
+    @mock.patch('cinderlib.objects.Volume.connections',
+                new_callable=mock.PropertyMock)
+    def test_volume_refresh(self, get_conns_mock, get_snaps_mock, get_mock):
+        vol = self.create_n_volumes(1)[0]
+        vol_id = vol.id
+        # This is to simulate situation where the persistence does lazy loading
+        vol._snapshots = vol._connections = None
+        get_mock.return_value = cinderlib.Volume(vol)
+
+        vol.refresh()
+
+        get_mock.assert_called_once_with(vol_id)
+        get_conns_mock.assert_not_called()
+        get_snaps_mock.assert_not_called()
+        self.assertIsNone(vol.local_attach)
+
+    @mock.patch('cinderlib.objects.Volume.get_by_id')
+    @mock.patch('cinderlib.objects.Volume.snapshots',
+                new_callable=mock.PropertyMock)
+    @mock.patch('cinderlib.objects.Volume.connections',
+                new_callable=mock.PropertyMock)
+    def test_volume_refresh_with_conn_and_snaps(self, get_conns_mock,
+                                                get_snaps_mock, get_mock):
+        vol = self.create_n_volumes(1)[0]
+        vol_id = vol.id
+        vol.local_attach = mock.sentinel.local_attach
+        get_mock.return_value = cinderlib.Volume(vol)
+
+        vol.refresh()
+
+        get_mock.assert_called_once_with(vol_id)
+        get_conns_mock.assert_called_once_with()
+        get_snaps_mock.assert_called_once_with()
+        self.assertIs(mock.sentinel.local_attach, vol.local_attach)
