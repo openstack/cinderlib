@@ -48,6 +48,6 @@ html_theme = 'openstackdocs'
 
 # -- Options for openstackdocstheme -------------------------------------------
 
-repository_name = 'openstack/cinderlib'
-bug_project = 'cinderlib'
-bug_tag = ''
+openstackdocs_repo_name = 'openstack/cinderlib'
+openstackdocs_bug_project = 'cinderlib'
+openstackdocs_bug_tag = ''
