@@ -1,12 +1,8 @@
 cinder==13.0.0
 mock==2.0.0
-openstackdocstheme==1.20.0
 os-brick==2.7.0
 pbr==2.0.0
-reno==2.5.0
 six==1.10.0
-Sphinx==1.6.2
-sphixcontrib-websupport==1.0.1
 stestr==1.0.0
 stevedore==1.20.0
 urllib3==1.21.1
