@@ -12,7 +12,6 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-from __future__ import absolute_import
 import pkg_resources
 
 from cinderlib import _fake_packages  # noqa F401

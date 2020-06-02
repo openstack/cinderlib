@@ -13,8 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from __future__ import absolute_import
-
 # NOTE(geguileo): Probably a good idea not to depend on cinder.cmd.volume
 # having all the other imports as they could change.
 from cinder import objects

@@ -26,7 +26,6 @@ Here we take care of:
 Some of these changes may be later moved to OS-Brick. For now we just copied it
 from the nos-brick repository.
 """
-from __future__ import absolute_import
 import errno
 import functools
 import os

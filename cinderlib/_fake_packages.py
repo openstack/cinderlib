@@ -26,7 +26,6 @@ This module fakes these packages providing the following benefits:
 - Reduced memory footprint
 - Distributions can create a cinderlib package with fewer dependencies.
 """
-from __future__ import absolute_import
 try:
     # Only present and needed in Python >= 3.4
     from importlib import machinery
