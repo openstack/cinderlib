@@ -5,4 +5,4 @@
 params=()
 for arg in "$@"; do params+=("\"$arg\""); done
 params="${params[@]}"
-sudo -E --preserve-env=PATH /bin/bash -c "$params"
+sudo -E --preserve-env=PATH,VIRTUAL_ENV /bin/bash -c "$params"

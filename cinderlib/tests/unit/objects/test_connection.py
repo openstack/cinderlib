@@ -258,13 +258,12 @@ class TestConnection(base.BaseTest):
 
     @mock.patch('cinderlib.objects.Connection.conn_info')
     @mock.patch('cinderlib.objects.Connection.protocol')
-    @mock.patch('os_brick.initiator.connector.InitiatorConnector.factory')
+    @mock.patch('cinder.volume.volume_utils.brick_get_connector')
     def test_connector_getter(self, mock_connector, mock_proto, mock_info):
         res = self.conn.connector
         self.assertEqual(mock_connector.return_value, res)
         mock_connector.assert_called_once_with(
             mock_proto,
-            self.backend.root_helper,
             use_multipath=self.mock_is_mp.return_value,
             device_scan_attempts=self.mock_default,
             conn=mock_info,

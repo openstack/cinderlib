@@ -12,10 +12,13 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import configparser
+import glob
 import json as json_lib
 import logging
 import multiprocessing
 import os
+import shutil
 
 from cinder import coordination
 from cinder.db import api as db_api
@@ -26,16 +29,18 @@ from cinder import objects as cinder_objects
 cinder_objects.register_all()  # noqa
 
 from cinder.interface import util as cinder_interface_util
+import cinder.privsep
 from cinder import utils
 from cinder.volume import configuration
 from cinder.volume import manager  # noqa We need to import config options
+import os_brick.privileged
 from oslo_config import cfg
 from oslo_log import log as oslo_logging
+from oslo_privsep import priv_context
 from oslo_utils import importutils
 import urllib3
 
 import cinderlib
-from cinderlib import nos_brick
 from cinderlib import objects
 from cinderlib import persistence
 from cinderlib import serialization
@@ -295,8 +300,8 @@ class Backend(object):
         if cls.global_initialization:
             raise Exception('Already setup')
 
+        cls.im_root = os.getuid() == 0
         cls.fail_on_missing_backend = fail_on_missing_backend
-        cls.root_helper = root_helper
         cls.project_id = project_id
         cls.user_id = user_id
         cls.non_uuid_ids = non_uuid_ids
@@ -338,8 +343,74 @@ class Backend(object):
 
     @classmethod
     def _set_priv_helper(cls, root_helper):
-        utils.get_root_helper = lambda: root_helper
-        nos_brick.init(root_helper)
+        # If we are using a virtual environment then the rootwrap config files
+        # Should be within the environment and not under /etc/cinder/
+        venv = os.environ.get('VIRTUAL_ENV')
+        if (venv and not cfg.CONF.rootwrap_config.startswith(venv) and
+                not os.path.exists(cfg.CONF.rootwrap_config)):
+
+            # We need to remove the absolute path (initial '/') to generate the
+            # config path under the virtualenv
+            # for the join to work.
+            wrap_path = cfg.CONF.rootwrap_config[1:]
+            venv_wrap_file = os.path.join(venv, wrap_path)
+            venv_wrap_dir = os.path.dirname(venv_wrap_file)
+
+            # In virtual environments our rootwrap config file is no longer
+            # '/etc/cinder/rootwrap.conf'.  We have 2 possible roots,  it's
+            # either the virtualenv's directory or our where our sources are if
+            # we have installed cinder as editable.
+
+            # For editable we need to copy the files into the virtualenv if we
+            # haven't copied them before.
+            if not utils.__file__.startswith(venv):
+                # If we haven't copied the files yet
+                if not os.path.exists(venv_wrap_file):
+                    editable_link = glob.glob(os.path.join(
+                        venv, 'lib/python*/site-packages/cinder.egg-link'))
+                    with open(editable_link[0], 'r') as f:
+                        cinder_source_path = f.read().split('\n')[0]
+                    cinder_source_etc = os.path.join(cinder_source_path,
+                                                     'etc/cinder')
+
+                    shutil.copytree(cinder_source_etc, venv_wrap_dir)
+
+            # For venvs we need to update configured filters_path and exec_dirs
+            parser = configparser.ConfigParser()
+            parser.read(venv_wrap_file)
+            # Change contents if we haven't done it already
+            if not parser['DEFAULT']['filters_path'].startswith(venv_wrap_dir):
+                parser['DEFAULT']['filters_path'] = os.path.join(venv_wrap_dir,
+                                                                 'rootwrap.d')
+                parser['DEFAULT']['exec_dirs'] = (
+                    os.path.join(venv, 'bin,') +
+                    parser['DEFAULT']['exec_dirs'])
+
+                with open(venv_wrap_file, 'w') as f:
+                    parser.write(f)
+
+            # Don't use set_override because it doesn't work as it should
+            cfg.CONF.rootwrap_config = venv_wrap_file
+
+        # The default Cinder roothelper in Cinder and privsep is sudo, so
+        # nothing to do in those cases.
+        if root_helper != 'sudo':
+            # Get the current helper (usually 'sudo cinder-rootwrap
+            # <CONF.rootwrap_config>') and replace the sudo part
+            original_helper = utils.get_root_helper()
+
+            # If we haven't already set the helper
+            if root_helper not in original_helper:
+                new_helper = original_helper.replace('sudo', root_helper)
+                utils.get_root_helper = lambda: new_helper
+
+                # Initialize privsep's context to not use 'sudo'
+                priv_context.init(root_helper=[root_helper])
+
+        # Don't use server/client mode when running as root
+        client_mode = not cls.im_root
+        cinder.privsep.sys_admin_pctxt.set_client_mode(client_mode)
+        os_brick.privileged.default.set_client_mode(client_mode)
 
     @property
     def config(self):
