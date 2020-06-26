@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fix issue on RBD driver about not specifying a root helper when running as
+    a non-root user inside a container.
+    (Bug #1885291).

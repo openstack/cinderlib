@@ -243,8 +243,9 @@ class TestRBDConnector(base.BaseTest):
     @mock.patch('os.makedirs')
     def test__ensure_dir(self, mkdir_mock, exec_mock):
         self.connector._ensure_dir(mock.sentinel.path)
-        exec_mock.assert_called_once_with('mkdir', '-p', '-m0755',
-                                          mock.sentinel.path, run_as_root=True)
+        exec_mock.assert_called_once_with(
+            'mkdir', '-p', '-m0755', mock.sentinel.path,
+            root_helper=self.connector._root_helper, run_as_root=True)
         mkdir_mock.assert_not_called()
 
     @mock.patch.object(nos_brick.RBDConnector, '_execute')
@@ -284,8 +285,9 @@ class TestRBDConnector(base.BaseTest):
         link = '/dev/rbd/rbd/volume-xyz'
         self.connector._ensure_link(source, link)
         dir_mock.assert_called_once_with('/dev/rbd/rbd')
-        exec_mock.assert_called_once_with('ln', '-s', '-f', source, link,
-                                          run_as_root=True)
+        exec_mock.assert_called_once_with(
+            'ln', '-s', '-f', source, link,
+            root_helper=self.connector._root_helper, run_as_root=True)
         exists_mock.assert_not_called()
         remove_mock.assert_not_called()
         link_mock.assert_not_called()
