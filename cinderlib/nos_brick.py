@@ -253,8 +253,7 @@ def unlink_root(*links, **kwargs):
     else:
         with exc.context(catch_exception, error_msg, links):
             # Ignore file doesn't exist errors
-            putils.execute('rm', *links, run_as_root=True,
-                           check_exit_code=(0, errno.ENOENT),
+            putils.execute('rm', '-f', *links, run_as_root=True,
                            root_helper=ROOT_HELPER)
 
     if not no_errors and raise_at_end and exc:

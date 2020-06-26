@@ -476,3 +476,22 @@ class TestRBDConnector(base.BaseTest):
         exec_mock.assert_called_once_with(
             'dd', 'if=/tmp/path', 'of=/dev/null', 'bs=4096', 'count=1',
             root_helper=self.connector._root_helper, run_as_root=True)
+
+    @mock.patch.object(nos_brick.os, 'unlink')
+    @mock.patch.object(nos_brick.os, 'getuid', return_value=0)
+    def test_unlink_root_being_root(self, mock_getuid, mock_unlink):
+        mock_unlink.side_effect = [None, OSError(errno.ENOENT, '')]
+        nos_brick.unlink_root(mock.sentinel.file1, mock.sentinel.file2)
+        mock_getuid.assert_called_once()
+        mock_unlink.assert_has_calls([mock.call(mock.sentinel.file1),
+                                      mock.call(mock.sentinel.file2)])
+
+    @mock.patch.object(nos_brick.putils, 'execute')
+    @mock.patch.object(nos_brick.os, 'getuid', return_value=1000)
+    def test_unlink_root_non_root(self, mock_getuid, mock_exec):
+        nos_brick.unlink_root(mock.sentinel.file1, mock.sentinel.file2)
+        mock_getuid.assert_called_once()
+        mock_exec.assert_called_once_with('rm', '-f', mock.sentinel.file1,
+                                          mock.sentinel.file2,
+                                          run_as_root=True,
+                                          root_helper=nos_brick.ROOT_HELPER)

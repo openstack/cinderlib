@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fix issue where disconnecting an RBD volume inside a container when the
+    host had the ceph-common package installed could lead to failure due to a
+    "No such file or directory" error.
+    (Bug #1885293).
