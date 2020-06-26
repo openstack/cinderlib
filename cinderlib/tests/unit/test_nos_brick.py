@@ -31,6 +31,54 @@ class TestRBDConnector(base.BaseTest):
         self.connector.containerized = False
         self.connector._setup_rbd_class = lambda *args: None
 
+    @mock.patch.object(nos_brick, 'open')
+    @mock.patch('os.stat')
+    def test__in_container_stat(self, mock_stat, mock_open):
+        mock_stat.return_value.st_dev = 4
+        res = self.connector._in_container()
+        self.assertFalse(res)
+        mock_stat.assert_called_once_with('/proc')
+        mock_open.assert_not_called()
+
+    @mock.patch.object(nos_brick, 'open')
+    @mock.patch('os.stat')
+    def test__in_container_mounts_no_container(self, mock_stat, mock_open):
+        mock_stat.return_value.st_dev = 5
+        mock_read = mock_open.return_value.__enter__.return_value.readlines
+        mock_read.return_value = [
+            'sysfs /sys sysfs rw,seclabel,nosuid,nodev,noexec,relatime 0 0',
+            'proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0',
+            '/dev/mapper/fedora_think2-root / ext4 rw,seclabel,relatime 0 0',
+            'selinuxfs /sys/fs/selinux selinuxfs rw,relatime 0 0',
+        ]
+
+        res = self.connector._in_container()
+        self.assertFalse(res)
+        mock_stat.assert_called_once_with('/proc')
+        mock_open.assert_called_once_with('/proc/1/mounts', 'r')
+        mock_read.assert_called_once_with()
+
+    @mock.patch.object(nos_brick.LOG, 'warning')
+    @mock.patch.object(nos_brick, 'open')
+    @mock.patch('os.stat')
+    def test__in_container_mounts_in_container(self, mock_stat, mock_open,
+                                               mock_warning):
+        mock_stat.return_value.st_dev = 5
+        mock_read = mock_open.return_value.__enter__.return_value.readlines
+        mock_read.return_value = [
+            'sysfs /sys sysfs rw,seclabel,nosuid,nodev,noexec,relatime 0 0',
+            'proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0',
+            'overlay / overlay rw,lowerdir=/var/lib/containers/...',
+            'selinuxfs /sys/fs/selinux selinuxfs rw,relatime 0 0',
+        ]
+
+        res = self.connector._in_container()
+        self.assertTrue(res)
+        mock_stat.assert_called_once_with('/proc')
+        mock_open.assert_called_once_with('/proc/1/mounts', 'r')
+        mock_read.assert_called_once_with()
+        mock_warning.assert_not_called()
+
     @mock.patch.object(nos_brick.RBDConnector, '_get_rbd_args')
     @mock.patch.object(nos_brick.RBDConnector, '_execute')
     @mock.patch('os.path.exists', return_value=True)

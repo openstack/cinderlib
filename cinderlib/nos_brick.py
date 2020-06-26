@@ -183,6 +183,23 @@ class RBDConnector(connectors.rbd.RBDConnector):
         else:
             self._execute('mkdir', '-p', '-m0755', path, run_as_root=True)
 
+    @staticmethod
+    def _in_container():
+        if os.stat('/proc').st_dev <= 4:
+            return False
+
+        # When running containerized / is /var/lib/docker when running in
+        # Docker /var/lib/containers when running in Podman, and /var/lib/lxc
+        # when in LXC
+        with open('/proc/1/mounts', 'r') as f:
+            for line in f.readlines():
+                data = line.split(' ', 2)
+                if data[1] == '/':
+                    return '/var/lib/' in data[2]
+        # Just in case, say we are
+        LOG.warning("Couldn't detect if running on container, assuming we are")
+        return True
+
     def _setup_class(self):
         try:
             self._execute('which', 'rbd')
@@ -192,7 +209,7 @@ class RBDConnector(connectors.rbd.RBDConnector):
 
         RBDConnector.im_root = os.getuid() == 0
         # Check if we are running containerized
-        RBDConnector.containerized = os.stat('/proc').st_dev > 4
+        RBDConnector.containerized = self._in_container()
 
         # Don't check again to speed things on following connections
         RBDConnector._setup_rbd_class = lambda *args: None
