@@ -16,27 +16,43 @@
 import os
 import random
 
+import ddt
+
 import cinderlib
 from cinderlib.tests.functional import base_tests
 
 
+@ddt.ddt
 class BaseFunctTestCase(base_tests.unittest.TestCase):
-    def test_list_supported_drivers(self):
+    @ddt.data([], [1], [2])
+    def test_list_supported_drivers(self, args):
+        is_v2 = args == [2]
+        expected_type = dict if is_v2 else str
         expected_keys = {'version', 'class_name', 'supported', 'ci_wiki_name',
                          'driver_options', 'class_fqn', 'desc'}
 
-        drivers = cinderlib.Backend.list_supported_drivers()
+        drivers = cinderlib.Backend.list_supported_drivers(*args)
         self.assertNotEqual(0, len(drivers))
         for name, driver_info in drivers.items():
             self.assertEqual(expected_keys, set(driver_info.keys()))
+
             # Ensure that the RBDDriver has the rbd_keyring_conf option and
             # it's not deprecated
             if name == 'RBDDriver':
                 keyring_conf = [conf for conf in driver_info['driver_options']
                                 if conf['dest'] == 'rbd_keyring_conf']
                 self.assertEqual(1, len(keyring_conf))
-                self.assertEqual('False',
+                expected_value = False if is_v2 else 'False'
+                self.assertEqual(expected_value,
                                  keyring_conf[0]['deprecated_for_removal'])
+
+            for option in driver_info['driver_options']:
+                self.assertIsInstance(option['type'], expected_type)
+                if is_v2:
+                    self.assertTrue('type_class' in option['type'])
+                else:
+                    for v in option.values():
+                        self.assertIsInstance(v, str)
 
 
 @base_tests.test_all_backends

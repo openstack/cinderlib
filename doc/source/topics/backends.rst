@@ -143,6 +143,15 @@ Available drivers for *cinderlib* depend on the Cinder version installed, so we
 have a method, called `list_supported_drivers` to list information about the
 drivers that are included with the Cinder release installed in the system.
 
+The method accepts parameter ``output_version`` where we can specify the
+desired output format:
+
+- ``1`` for human usage (default value).
+- ``2`` for automation tools.
+
+The main difference are the values of the driver options and how the expected
+type of these options is described.
+
 .. code-block:: python
 
    import cinderlib
@@ -158,11 +167,74 @@ Here's the entry for the LVM driver:
 
     {'LVMVolumeDriver':
         {'ci_wiki_name': 'Cinder_Jenkins',
-        'class_fqn': 'cinder.volume.drivers.lvm.LVMVolumeDriver',
-        'class_name': 'LVMVolumeDriver',
-        'desc': 'Executes commands relating to Volumes.',
-        'supported': True,
-        'version': '3.0.0'}}
+         'class_fqn': 'cinder.volume.drivers.lvm.LVMVolumeDriver',
+         'class_name': 'LVMVolumeDriver',
+         'desc': 'Executes commands relating to Volumes.',
+         'supported': True,
+         'version': '3.0.0',
+         'driver_options': [
+             {'advanced': 'False',
+              'default': '64',
+              'deprecated_for_removal': 'False',
+              'deprecated_opts': '[]',
+              'deprecated_reason': 'None',
+              'deprecated_since': 'None',
+              'dest': 'spdk_max_queue_depth',
+              'help': 'Queue depth for rdma transport.',
+              'metavar': 'None',
+              'mutable': 'False',
+              'name': 'spdk_max_queue_depth',
+              'positional': 'False',
+              'required': 'False',
+              'sample_default': 'None',
+              'secret': 'False',
+              'short': 'None',
+              'type': 'Integer(min=1, max=128)'},
+         ],
+        }
+    },
+
+The equivalent for the LVM driver for automation would be:
+
+.. code-block::
+
+   import cinderlib
+
+   drivers = cinderlib.list_supported_drivers(2)
+
+    {'LVMVolumeDriver':
+        {'ci_wiki_name': 'Cinder_Jenkins',
+         'class_fqn': 'cinder.volume.drivers.lvm.LVMVolumeDriver',
+         'class_name': 'LVMVolumeDriver',
+         'desc': 'Executes commands relating to Volumes.',
+         'supported': True,
+         'version': '3.0.0',
+         'driver_options': [
+            {'advanced': False,
+             'default': 64,
+             'deprecated_for_removal': False,
+             'deprecated_opts': [],
+             'deprecated_reason': None,
+             'deprecated_since': None,
+             'dest': 'spdk_max_queue_depth',
+             'help': 'Queue depth for rdma transport.',
+             'metavar': None,
+             'mutable': False,
+             'name': 'spdk_max_queue_depth',
+             'positional': False,
+             'required': False,
+             'sample_default': None,
+             'secret': False,
+             'short': None,
+             'type': {'choices': None,
+                      'max': 128,
+                      'min': 1,
+                      'num_type': <class 'int'>,
+                      'type_class': Integer(min=1, max=128),
+                      'type_name': 'integer value'}}
+         ],
+        }
+    },
 
 Stats
 -----

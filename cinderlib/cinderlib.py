@@ -371,66 +371,87 @@ class Backend(object):
             self.volumes
 
     @staticmethod
-    def list_supported_drivers():
-        """Returns dictionary with driver classes names as keys."""
+    def list_supported_drivers(output_version=1):
+        """Returns dictionary with driver classes names as keys.
 
-        def fix_cinderlib_options(driver_dict):
+        The output of the method changes from version to version, so we can
+        pass the output_version parameter to specify which version we are
+        expecting.
+
+        Version 1: Original output intended for human consumption, where all
+                   dictionary values are strings.
+        Version 2: Improved version intended for automated consumption.
+                   - type is now a dictionary with detailed information
+                   - Values retain their types, so we'll no longer get 'None'
+                      or 'False'.
+        """
+        def get_vars(obj):
+            return {k: v for k, v in vars(obj).items()
+                    if not k.startswith('_')}
+
+        def get_strs(obj):
+            return {k: str(v) for k, v in vars(obj).items()
+                    if not k.startswith('_')}
+
+        def convert_oslo_config(oslo_option, output_version):
+            if output_version != 2:
+                return get_strs(oslo_option)
+
+            res = get_vars(oslo_option)
+            type_class = res['type']
+            res['type'] = get_vars(oslo_option.type)
+            res['type']['type_class'] = type_class
+            return res
+
+        def fix_cinderlib_options(driver_dict, output_version):
             # The rbd_keyring_conf option is deprecated and will be removed for
             # Cinder, because it's a security vulnerability there (OSSN-0085),
             # but it isn't for cinderlib, since the user of the library already
             # has access to all the credentials, and cinderlib needs it to work
             # with RBD, so we need to make sure that the config option is
             # there whether it's reported as deprecated or removed from Cinder.
-            RBD_KEYRING_CONF = {
-                'advanced': 'False', 'default': '', 'metavar': 'None',
-                'deprecated_for_removal': 'False', 'deprecated_opts': '[]',
-                'deprecated_reason': 'None', 'deprecated_since': 'None',
-                'dest': 'rbd_keyring_conf', 'mutable': 'False',
-                'help': 'Path to the ceph keyring file',
-                'name': 'rbd_keyring_conf', 'positional': 'False',
-                'required': 'False', 'sample_default': 'None',
-                'secret': 'False', 'short': 'None', 'type': 'String'}
+            RBD_KEYRING_CONF = cfg.StrOpt('rbd_keyring_conf',
+                                          default='',
+                                          help='Path to the ceph keyring file')
 
             if driver_dict['class_name'] != 'RBDDriver':
                 return
+            rbd_opt = convert_oslo_config(RBD_KEYRING_CONF, output_version)
             for opt in driver_dict['driver_options']:
                 if opt['dest'] == 'rbd_keyring_conf':
                     opt.clear()
-                    opt.update(RBD_KEYRING_CONF)
+                    opt.update(rbd_opt)
                     break
             else:
-                driver_dict['driver_options'].append(RBD_KEYRING_CONF)
+                driver_dict['driver_options'].append(rbd_opt)
 
-        def convert_oslo_config(oslo_options):
-            options = []
-            for opt in oslo_options:
-                tmp_dict = {k: str(v) for k, v in vars(opt).items()
-                            if not k.startswith('_')}
-                options.append(tmp_dict)
-            return options
-
-        def list_drivers(queue):
+        def list_drivers(queue, output_version):
             cwd = os.getcwd()
             # Go to the parent directory directory where Cinder is installed
             os.chdir(utils.__file__.rsplit(os.sep, 2)[0])
             try:
                 drivers = cinder_interface_util.get_volume_drivers()
                 mapping = {d.class_name: vars(d) for d in drivers}
-                # Drivers contain class instances which are not serializable
                 for driver in mapping.values():
                     driver.pop('cls', None)
                     if 'driver_options' in driver:
-                        driver['driver_options'] = convert_oslo_config(
-                            driver['driver_options'])
-                        fix_cinderlib_options(driver)
+                        driver['driver_options'] = [
+                            convert_oslo_config(opt, output_version)
+                            for opt in driver['driver_options']
+                        ]
+                        fix_cinderlib_options(driver, output_version)
             finally:
                 os.chdir(cwd)
             queue.put(mapping)
 
+        if not (1 <= output_version <= 2):
+            raise ValueError('Acceptable versions are 1 and 2')
+
         # Use a different process to avoid having all driver classes loaded in
         # memory during our execution.
         queue = multiprocessing.Queue()
-        p = multiprocessing.Process(target=list_drivers, args=(queue,))
+        p = multiprocessing.Process(target=list_drivers,
+                                    args=(queue, output_version))
         p.start()
         result = queue.get()
         p.join()
