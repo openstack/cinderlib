@@ -35,6 +35,14 @@ class TestCinderlib(base.BaseTest):
         self.assertNotEqual(0, len(drivers))
         for name, driver_info in drivers.items():
             self.assertEqual(expected_keys, set(driver_info.keys()))
+            # Ensure that the RBDDriver has the rbd_keyring_conf option and
+            # it's not deprecated
+            if name == 'RBDDriver':
+                keyring_conf = [conf for conf in driver_info['driver_options']
+                                if conf['dest'] == 'rbd_keyring_conf']
+                self.assertEqual(1, len(keyring_conf))
+                self.assertEqual('False',
+                                 keyring_conf[0]['deprecated_for_removal'])
 
     def test_lib_assignations(self):
         self.assertEqual(cinderlib.setup, cinderlib.Backend.global_setup)
