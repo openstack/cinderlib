@@ -50,6 +50,24 @@ To find what configuration options are available and which ones are compulsory
 the best is going to the Vendor's documentation or to the `OpenStack's Cinder
 volume driver configuration documentation`_.
 
+*Cinderlib* supports references in the configuration values using the forms:
+
+- ``$[<config_group>.]<config_option>``
+- ``${[<config_group>.]<config_option>}``
+
+Where ``config_group`` is ``backend_defaults`` for the driver configuration
+options.
+
+.. attention::
+
+    The ``rbd_keyring_file`` configuration parameter does not accept
+    templating.
+
+Examples:
+
+- ``target_ip_address='$my_ip'``
+- ``volume_group='my-${backend_defaults.volume_backend_name}-vg'``
+
 .. attention::
 
     Some drivers have external dependencies which we must satisfy before

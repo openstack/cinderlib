@@ -204,15 +204,14 @@ class Backend(object):
         if host:
             cfg.CONF.host = host
 
-        cls._validate_options(cinder_config_params)
-        for k, v in cinder_config_params.items():
-            setattr(cfg.CONF, k, v)
+        cls._validate_and_set_options(cinder_config_params)
 
         # Replace command line arg parser so we ignore caller's args
         cfg._CachedArgumentParser.parse_args = lambda *a, **kw: None
 
     @classmethod
-    def _validate_options(cls, kvs, group=None):
+    def _validate_and_set_options(cls, kvs, group=None):
+        """Validate options and substitute references."""
         # Dynamically loading the driver triggers adding the specific
         # configuration options to the backend_defaults section
         if kvs.get('volume_driver'):
@@ -221,22 +220,36 @@ class Backend(object):
             group = group or 'backend_defaults'
 
         for k, v in kvs.items():
-            # The config may be removed from the Cinder RBD driver, but the
-            # functionality will remain for cinderlib usage only, so we do the
-            # validation manually.
-            if k == 'rbd_keyring_conf':
-                if v and not isinstance(v, str):
-                    raise ValueError('%s must be a string' % k)
-                continue
-
             try:
                 # set_override does the validation
                 cfg.CONF.set_override(k, v, group)
-                # for correctness, don't leave it there
-                cfg.CONF.clear_override(k, group)
             except cfg.NoSuchOptError:
-                # Don't fail on unknown variables, behave like cinder
-                LOG.warning('Unknown config option %s', k)
+                # RBD keyring may be removed from the Cinder RBD driver, but
+                # the functionality will remain for cinderlib usage only, so we
+                # do the validation manually in that case.
+                # NOTE: Templating won't work on the rbd_keyring_conf, but it's
+                # unlikely to be needed.
+                if k == 'rbd_keyring_conf':
+                    if v and not isinstance(v, str):
+                        raise ValueError('%s must be a string' % k)
+                else:
+                    # Don't fail on unknown variables, behave like cinder
+                    LOG.warning('Unknown config option %s', k)
+
+        oslo_group = getattr(cfg.CONF, str(group), cfg.CONF)
+        # Now that we have validated/templated everything set updated values
+        for k, v in kvs.items():
+            kvs[k] = getattr(oslo_group, k, v)
+
+        # For global configuration we leave the overrides, but for drivers we
+        # don't to prevent cross-driver config polination.  The cfg will be
+        # set as an attribute of the configuration that's passed to the driver.
+        if group:
+            for k in kvs.keys():
+                try:
+                    cfg.CONF.clear_override(k, group, clear_cache=True)
+                except cfg.NoSuchOptError:
+                    pass
 
     def _get_backend_config(self, driver_cfg):
         # Create the group for the backend
@@ -244,8 +257,8 @@ class Backend(object):
         cfg.CONF.register_group(cfg.OptGroup(backend_name))
 
         # Validate and set config options
+        self._validate_and_set_options(driver_cfg)
         backend_group = getattr(cfg.CONF, backend_name)
-        self._validate_options(driver_cfg)
         for key, value in driver_cfg.items():
             setattr(backend_group, key, value)
 
