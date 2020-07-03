@@ -69,11 +69,30 @@ class Backend(object):
     # With this dictionary the DB class can get the necessary data
     _volumes_inflight = {}
 
+    def __new__(cls, volume_backend_name, **driver_cfg):
+        # Prevent redefinition of an already initialized backend on the same
+        # persistence storage with a different configuration.
+        backend = Backend.backends.get(volume_backend_name)
+        if backend:
+            # If we are instantiating the same backend return the one we have
+            # saved (singleton pattern).
+            if driver_cfg == backend._original_driver_cfg:
+                return backend
+            raise ValueError('Backend named %s already exists with a different'
+                             ' configuration' % volume_backend_name)
+
+        return super(Backend, cls).__new__(cls)
+
     def __init__(self, volume_backend_name, **driver_cfg):
         if not self.global_initialization:
             self.global_setup()
+        # Instance already initialized
+        if volume_backend_name in Backend.backends:
+            return
+        # Save the original config before we add the backend name and template
+        # the values.
+        self._original_driver_cfg = driver_cfg.copy()
         driver_cfg['volume_backend_name'] = volume_backend_name
-        Backend.backends[volume_backend_name] = self
 
         conf = self._get_backend_config(driver_cfg)
         self._apply_backend_workarounds(conf)
@@ -101,6 +120,7 @@ class Backend(object):
         self._stats = self._transform_legacy_stats(stats)
 
         self._pool_names = tuple(pool['pool_name'] for pool in stats['pools'])
+        Backend.backends[volume_backend_name] = self
 
     @property
     def pool_names(self):

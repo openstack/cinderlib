@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Prevent the creation of multiple backends with the same name during the
+    same code run.
+    (Bug #1886164).
