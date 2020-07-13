@@ -14,6 +14,7 @@
 #    under the License.
 
 import tempfile
+from unittest import mock
 
 from cinder.db.sqlalchemy import api as sqla_api
 from cinder import objects as cinder_ovos
@@ -134,6 +135,32 @@ class TestDBPersistence(base.BasePersistenceTest):
             query = dbms.sqla_api.model_query(self.context, model)
             res = query.filter_by(volume_id=vols[0].id).all()
             self.assertEqual([], res)
+
+
+class TestDBPersistenceNewerSchema(base.helper.TestHelper):
+    """Test DBMS plugin can start when the DB has a newer schema."""
+    CONNECTION = 'sqlite:///' + tempfile.NamedTemporaryFile().name
+    PERSISTENCE_CFG = {'storage': 'db',
+                       'connection': CONNECTION}
+
+    @classmethod
+    def setUpClass(cls):
+        pass
+
+    def _raise_exc(self):
+        inner_exc = dbms.migrate.exceptions.VersionNotFoundError()
+        exc = dbms.exception.DBMigrationError(inner_exc)
+        self.original_db_sync()
+        raise(exc)
+
+    def test_newer_db_schema(self):
+        self.original_db_sync = dbms.migration.db_sync
+        with mock.patch.object(dbms.migration, 'db_sync',
+                               side_effect=self._raise_exc) as db_sync_mock:
+            super(TestDBPersistenceNewerSchema, self).setUpClass()
+            db_sync_mock.assert_called_once()
+            self.assertIsInstance(cinderlib.Backend.persistence,
+                                  dbms.DBPersistence)
 
 
 class TestMemoryDBPersistence(TestDBPersistence):

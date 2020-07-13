@@ -21,6 +21,7 @@ from cinder.db.sqlalchemy import api as sqla_api
 from cinder.db.sqlalchemy import models
 from cinder import exception as cinder_exception
 from cinder import objects as cinder_objs
+import migrate
 from oslo_config import cfg
 from oslo_db import exception
 from oslo_log import log
@@ -70,7 +71,15 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         self.original_get_by_id = self.db_instance.get_by_id
         self.db_instance.get_by_id = self.get_by_id
 
-        migration.db_sync()
+        try:
+            migration.db_sync()
+        except exception.DBMigrationError as exc:
+            # We can be running 2 Cinder versions at the same time on the same
+            # DB while we upgrade, so we must ignore the fact that the DB is
+            # now on a newer version.
+            if not isinstance(getattr(exc, 'inner_exception', None),
+                              migrate.exceptions.VersionNotFoundError):
+                raise
         self._create_key_value_table()
 
         # NOTE : At this point, the persistence isn't ready so we need to use
