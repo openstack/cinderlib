@@ -219,6 +219,14 @@ class Backend(object):
             group = group or 'backend_defaults'
 
         for k, v in kvs.items():
+            # The config may be removed from the Cinder RBD driver, but the
+            # functionality will remain for cinderlib usage only, so we do the
+            # validation manually.
+            if k == 'rbd_keyring_conf':
+                if v and not isinstance(v, str):
+                    raise ValueError('%s must be a string' % k)
+                continue
+
             try:
                 # set_override does the validation
                 cfg.CONF.set_override(k, v, group)
@@ -364,6 +372,33 @@ class Backend(object):
     def list_supported_drivers():
         """Returns dictionary with driver classes names as keys."""
 
+        def fix_cinderlib_options(driver_dict):
+            # The rbd_keyring_conf option is deprecated and will be removed for
+            # Cinder, because it's a security vulnerability there (OSSN-0085),
+            # but it isn't for cinderlib, since the user of the library already
+            # has access to all the credentials, and cinderlib needs it to work
+            # with RBD, so we need to make sure that the config option is
+            # there whether it's reported as deprecated or removed from Cinder.
+            RBD_KEYRING_CONF = {
+                'advanced': 'False', 'default': '', 'metavar': 'None',
+                'deprecated_for_removal': 'False', 'deprecated_opts': '[]',
+                'deprecated_reason': 'None', 'deprecated_since': 'None',
+                'dest': 'rbd_keyring_conf', 'mutable': 'False',
+                'help': 'Path to the ceph keyring file',
+                'name': 'rbd_keyring_conf', 'positional': 'False',
+                'required': 'False', 'sample_default': 'None',
+                'secret': 'False', 'short': 'None', 'type': 'String'}
+
+            if driver_dict['class_name'] != 'RBDDriver':
+                return
+            for opt in driver_dict['driver_options']:
+                if opt['dest'] == 'rbd_keyring_conf':
+                    opt.clear()
+                    opt.update(RBD_KEYRING_CONF)
+                    break
+            else:
+                driver_dict['driver_options'].append(RBD_KEYRING_CONF)
+
         def convert_oslo_config(oslo_options):
             options = []
             for opt in oslo_options:
@@ -385,6 +420,7 @@ class Backend(object):
                     if 'driver_options' in driver:
                         driver['driver_options'] = convert_oslo_config(
                             driver['driver_options'])
+                        fix_cinderlib_options(driver)
             finally:
                 os.chdir(cwd)
             queue.put(mapping)
