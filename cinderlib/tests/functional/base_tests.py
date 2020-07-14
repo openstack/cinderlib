@@ -150,9 +150,8 @@ class BaseFunctTestCase(unittest.TestCase):
                     try:
                         vol.detach()
                     except Exception as exc:
-                        errors.append('Error detaching %s for volume %s %s: '
-                                      '%s' % (vol.local_attach.path, vol.id,
-                                              exc))
+                        errors.append('Error detaching %s for volume %s: %s' %
+                                      (vol.local_attach.path, vol.id, exc))
 
                 # Disconnect any existing connections
                 for conn in vol.connections:
