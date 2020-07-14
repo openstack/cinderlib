@@ -101,6 +101,51 @@ class TestCinderlib(base.BaseTest):
         self.assertEqual(('default',), backend.pool_names)
         mock_workarounds.assert_called_once_with(mock_config.return_value)
 
+    @mock.patch.object(objects.Backend, 'global_initialization', True)
+    @mock.patch.object(objects.Backend, '_apply_backend_workarounds')
+    @mock.patch('oslo_utils.importutils.import_object')
+    @mock.patch.object(objects.Backend, '_get_backend_config')
+    def test_init_call_twice(self, mock_config, mock_import, mock_workarounds):
+        cinderlib.Backend.global_initialization = False
+        driver_cfg = {'k': 'v', 'k2': 'v2', 'volume_backend_name': 'Test'}
+        driver = mock_import.return_value
+        driver.capabilities = {'pools': [{'pool_name': 'default'}]}
+
+        backend = objects.Backend(**driver_cfg)
+        self.assertEqual(1, mock_config.call_count)
+        self.assertEqual(1, mock_import.call_count)
+        self.assertEqual(1, mock_workarounds.call_count)
+
+        # When initiallizing a Backend with the same configuration the Backend
+        # class must behave as a singleton and we won't initialize it again
+        backend_second = objects.Backend(**driver_cfg)
+        self.assertIs(backend, backend_second)
+        self.assertEqual(1, mock_config.call_count)
+        self.assertEqual(1, mock_import.call_count)
+        self.assertEqual(1, mock_workarounds.call_count)
+
+    @mock.patch.object(objects.Backend, 'global_initialization', True)
+    @mock.patch.object(objects.Backend, '_apply_backend_workarounds')
+    @mock.patch('oslo_utils.importutils.import_object')
+    @mock.patch.object(objects.Backend, '_get_backend_config')
+    def test_init_call_twice_different_config(self, mock_config, mock_import,
+                                              mock_workarounds):
+        cinderlib.Backend.global_initialization = False
+        driver_cfg = {'k': 'v', 'k2': 'v2', 'volume_backend_name': 'Test'}
+        driver = mock_import.return_value
+        driver.capabilities = {'pools': [{'pool_name': 'default'}]}
+
+        objects.Backend(**driver_cfg)
+        self.assertEqual(1, mock_config.call_count)
+        self.assertEqual(1, mock_import.call_count)
+        self.assertEqual(1, mock_workarounds.call_count)
+
+        # It should fail if we reuse the backend name but change the config
+        self.assertRaises(ValueError, objects.Backend, k3='v3', **driver_cfg)
+        self.assertEqual(1, mock_config.call_count)
+        self.assertEqual(1, mock_import.call_count)
+        self.assertEqual(1, mock_workarounds.call_count)
+
     @mock.patch('cinderlib.Backend._validate_and_set_options')
     @mock.patch.object(cfg, 'CONF')
     def test__set_cinder_config(self, conf_mock, validate_mock):
