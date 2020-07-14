@@ -101,12 +101,11 @@ class TestCinderlib(base.BaseTest):
         self.assertEqual(('default',), backend.pool_names)
         mock_workarounds.assert_called_once_with(mock_config.return_value)
 
-    @mock.patch('cinderlib.Backend._validate_options')
+    @mock.patch('cinderlib.Backend._validate_and_set_options')
     @mock.patch.object(cfg, 'CONF')
     def test__set_cinder_config(self, conf_mock, validate_mock):
-        cinder_cfg = {'debug': True}
-
-        objects.Backend._set_cinder_config('host', 'locks_path', cinder_cfg)
+        objects.Backend._set_cinder_config('host', 'locks_path',
+                                           mock.sentinel.cfg)
 
         self.assertEqual(2, conf_mock.set_default.call_count)
         conf_mock.set_default.assert_has_calls(
@@ -120,9 +119,7 @@ class TestCinderlib(base.BaseTest):
                          cfg.CONF.coordination.backend_url)
         self.assertEqual('host', cfg.CONF.host)
 
-        validate_mock.assert_called_once_with(cinder_cfg)
-
-        self.assertEqual(True, cfg.CONF.debug)
+        validate_mock.assert_called_once_with(mock.sentinel.cfg)
 
         self.assertIsNone(cfg._CachedArgumentParser().parse_args())
 
@@ -176,39 +173,134 @@ class TestCinderlib(base.BaseTest):
                          cls.output_all_backend_info)
 
     @mock.patch('cinderlib.cinderlib.LOG.warning')
-    def test__validate_options(self, warning_mock):
+    def test__validate_and_set_options(self, warning_mock):
+        self.addCleanup(cfg.CONF.clear_override, 'osapi_volume_extension')
+        self.addCleanup(cfg.CONF.clear_override, 'debug')
         # Validate default group config with Boolean and MultiStrOpt
-        self.backend._validate_options(
+        self.backend._validate_and_set_options(
             {'debug': True,
              'osapi_volume_extension': ['a', 'b', 'c'],
              })
-        # Test driver options with String, ListOpt, PortOpt
-        self.backend._validate_options(
-            {'volume_driver': 'cinder.volume.drivers.lvm.LVMVolumeDriver',
-             'volume_group': 'cinder-volumes',
-             'iscsi_secondary_ip_addresses': ['w.x.y.z', 'a.b.c.d'],
-             'target_port': 12345,
-             })
+        # Global values overrides are left
+        self.assertIs(True, cfg.CONF.debug)
+        self.assertEqual(['a', 'b', 'c'], cfg.CONF.osapi_volume_extension)
 
+        cinder_cfg = {
+            'volume_driver': 'cinder.volume.drivers.lvm.LVMVolumeDriver',
+            'volume_group': 'lvm-volumes',
+            'iscsi_secondary_ip_addresses': ['w.x.y.z', 'a.b.c.d'],
+            'target_port': 12345,
+        }
+        expected_cfg = cinder_cfg.copy()
+
+        # Test driver options with String, ListOpt, PortOpt
+        self.backend._validate_and_set_options(cinder_cfg)
+        # Non global value overrides have been cleaned up
+        self.assertEqual('cinder-volumes',
+                         cfg.CONF.backend_defaults.volume_group)
+        self.assertEqual(
+            [], cfg.CONF.backend_defaults.iscsi_secondary_ip_addresses)
+        self.assertEqual(3260, cfg.CONF.backend_defaults.target_port)
+        self.assertEqual(expected_cfg, cinder_cfg)
+
+        warning_mock.assert_not_called()
+
+    @mock.patch('cinderlib.cinderlib.LOG.warning')
+    def test__validate_and_set_options_rbd(self, warning_mock):
+        original_override = cfg.CONF.set_override
+        original_getattr = cfg.ConfigOpts.GroupAttr.__getattr__
+
+        def my_override(option, value, *args):
+            original_override(option, value, *args)
+            # Simulate that the config option is missing if it's not
+            if option == 'rbd_keyring_conf':
+                raise cfg.NoSuchOptError('rbd_keyring_conf')
+
+        def my_getattr(self, name):
+            res = original_getattr(self, name)
+            # Simulate that the config option is missing if it's not
+            if name == 'rbd_keyring_conf':
+                raise AttributeError()
+            return res
+
+        self.patch('oslo_config.cfg.ConfigOpts.GroupAttr.__getattr__',
+                   my_getattr)
+        self.patch('oslo_config.cfg.CONF.set_override',
+                   side_effect=my_override)
+
+        cinder_cfg = {'volume_driver': 'cinder.volume.drivers.rbd.RBDDriver',
+                      'rbd_keyring_conf': '/etc/ceph/ceph.client.adm.keyring',
+                      'rbd_user': 'adm',
+                      'rbd_pool': 'volumes'}
+        expected_cfg = cinder_cfg.copy()
+        # Test driver options with String, ListOpt, PortOpt
+        self.backend._validate_and_set_options(cinder_cfg)
+        self.assertEqual(expected_cfg, cinder_cfg)
+        # Non global value overrides have been cleaned up
+        self.assertEqual(None, cfg.CONF.backend_defaults.rbd_user)
+        self.assertEqual('rbd', cfg.CONF.backend_defaults.rbd_pool)
         warning_mock.assert_not_called()
 
     @ddt.data(
         ('debug', 'sure', None),
         ('target_port', 'abc', 'cinder.volume.drivers.lvm.LVMVolumeDriver'))
     @ddt.unpack
-    def test__validate_options_failures(self, option, value, driver):
+    def test__validate_and_set_options_failures(self, option, value,
+                                                driver):
         self.assertRaises(
             ValueError,
-            self.backend._validate_options,
+            self.backend._validate_and_set_options,
             {'volume_driver': driver,
              option: value})
 
     @mock.patch('cinderlib.cinderlib.LOG.warning')
-    def test__validate_options_unkown(self, warning_mock):
-        self.backend._validate_options(
+    def test__validate_and_set_options_unknown(self, warning_mock):
+        self.backend._validate_and_set_options(
             {'volume_driver': 'cinder.volume.drivers.lvm.LVMVolumeDriver',
              'vmware_cluster_name': 'name'})
         self.assertEqual(1, warning_mock.call_count)
+
+    def test_validate_and_set_options_templates(self):
+        self.addCleanup(cfg.CONF.clear_override, 'my_ip')
+        cfg.CONF.set_override('my_ip', '127.0.0.1')
+
+        config_options = dict(
+            volume_driver='cinder.volume.drivers.lvm.LVMVolumeDriver',
+            volume_backend_name='lvm_iscsi',
+            volume_group='my-${backend_defaults.volume_backend_name}-vg',
+            target_ip_address='$my_ip',
+        )
+        expected = dict(
+            volume_driver='cinder.volume.drivers.lvm.LVMVolumeDriver',
+            volume_backend_name='lvm_iscsi',
+            volume_group='my-lvm_iscsi-vg',
+            target_ip_address='127.0.0.1',
+        )
+        self.backend._validate_and_set_options(config_options)
+
+        self.assertDictEqual(expected, config_options)
+
+        # Non global value overrides have been cleaned up
+        self.assertEqual('cinder-volumes',
+                         cfg.CONF.backend_defaults.volume_group)
+
+    @mock.patch('cinderlib.cinderlib.Backend._validate_and_set_options')
+    def test__get_backend_config(self, mock_validate):
+        def my_validate(*args):
+            # Simulate the cache clear happening in _validate_and_set_options
+            cfg.CONF.clear_override('my_ip')
+
+        mock_validate.side_effect = my_validate
+        config_options = dict(
+            volume_driver='cinder.volume.drivers.lvm.LVMVolumeDriver',
+            volume_backend_name='lvm_iscsi',
+            volume_group='volumes',
+        )
+        res = self.backend._get_backend_config(config_options)
+        mock_validate.assert_called_once_with(config_options)
+        self.assertEqual('lvm_iscsi', res.config_group)
+        for opt in config_options.keys():
+            self.assertEqual(config_options[opt], getattr(res, opt))
 
     def test_pool_names(self):
         pool_names = [mock.sentinel._pool_names]
