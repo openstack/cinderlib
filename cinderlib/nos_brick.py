@@ -127,7 +127,7 @@ class RBDConnector(connectors.rbd.RBDConnector):
                     raise
         else:
             self._execute('ln', '-s', '-f', source, link_name,
-                          run_as_root=True)
+                          root_helper=self._root_helper, run_as_root=True)
 
     def check_valid_device(self, path, run_as_root=True):
         """Verify an existing RBD handle is connected and valid."""
@@ -180,7 +180,8 @@ class RBDConnector(connectors.rbd.RBDConnector):
                 if exc.errno != errno.EEXIST:
                     raise
         else:
-            self._execute('mkdir', '-p', '-m0755', path, run_as_root=True)
+            self._execute('mkdir', '-p', '-m0755', path,
+                          root_helper=self._root_helper, run_as_root=True)
 
     @staticmethod
     def _in_container():
