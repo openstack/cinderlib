@@ -11,6 +11,7 @@
 
         - cinderlib-lvm-functional
         - cinderlib-ceph-functional
+        - cinder-tempest-plugin-lvm-lio-barbican
     gate:
       queue: integrated
       jobs:
@@ -20,6 +21,7 @@
 
         - cinderlib-lvm-functional
         - cinderlib-ceph-functional
+        - cinder-tempest-plugin-lvm-lio-barbican
     post:
       jobs:
         - publish-openstack-python-branch-tarball
