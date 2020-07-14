@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fix cases where our detection of when we are running containerized is not
+    very reliable for the RBD driver.
+    (Bug #1885302).
