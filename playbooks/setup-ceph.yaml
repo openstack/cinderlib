@@ -65,14 +65,20 @@
           demo
 
       - name: Wait for ceph.conf
+        # Start of the file
         wait_for:
             path: /etc/ceph/ceph.conf
-            search_regex: '[global]'
+            search_regex: '\[global\]'
+        # End of the file
+      - wait_for:
+            path: /etc/ceph/ceph.conf
+            search_regex: '^osd data ='
 
       - name: Set ceph features in config
         lineinfile:
             path: /etc/ceph/ceph.conf
-            insertafter: '[global]'
+            insertafter: '\[global\]'
+            firstmatch: yes
             line: 'rbd default features = 3'
             state: present
 
@@ -80,3 +86,6 @@
         file:
             path: /etc/ceph/ceph.client.admin.keyring
             mode: 0644
+
+      - shell: cat /etc/ceph/ceph.conf
+        register: ceph_conf
