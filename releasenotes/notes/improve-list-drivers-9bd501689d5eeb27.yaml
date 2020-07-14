@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Improve ``list_supported_drivers`` method to facilitate usage by automation
+    tools.  Method now accepts ``output_version`` parameter with value ``2`` to
+    get Python objects instead of having all values converted to strings.
