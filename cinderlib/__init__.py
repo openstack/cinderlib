@@ -12,7 +12,13 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-import pkg_resources
+
+try:
+    # For python 3.8 and later
+    import importlib.metadata as importlib_metadata
+except ImportError:
+    # For everyone else
+    import importlib_metadata
 
 from cinderlib import _fake_packages  # noqa F401
 from cinderlib import cinderlib
@@ -21,8 +27,8 @@ from cinderlib import serialization
 from cinderlib import workarounds  # noqa
 
 try:
-    __version__ = pkg_resources.get_distribution('cinderlib').version
-except pkg_resources.DistributionNotFound:
+    __version__ = importlib_metadata.version('cinderlib')
+except importlib_metadata.PackageNotFoundError:
     __version__ = '0.0.0'
 
 DEFAULT_PROJECT_ID = objects.DEFAULT_PROJECT_ID

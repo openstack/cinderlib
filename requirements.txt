@@ -1,1 +1,2 @@
 cinder>=15.0.0 # Apache-2.0
+importlib_metadata>=1.7.0;python_version<'3.8' # Apache-2.0
