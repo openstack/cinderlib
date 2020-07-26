@@ -72,7 +72,7 @@
     parent: cinderlib-functional
     pre-run: playbooks/setup-ceph.yaml
     # TODO: move back to centos-8 as soon as Ceph packages are available
-    nodeset: ubuntu-bionic
+    nodeset: ubuntu-focal
     vars:
       tox_environment:
         CL_FTEST_CFG: "{{ ansible_user_dir }}/{{ zuul.projects['opendev.org/openstack/cinderlib'].src_dir }}/cinderlib/tests/functional/ceph.yaml"
