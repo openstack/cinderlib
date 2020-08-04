@@ -11,7 +11,7 @@
 
         - cinderlib-lvm-functional
         - cinderlib-ceph-functional
-        - cinder-tempest-plugin-lvm-lio-barbican
+        - os-brick-src-tempest-lvm-lio-barbican
     gate:
       queue: integrated
       jobs:
@@ -21,7 +21,7 @@
 
         - cinderlib-lvm-functional
         - cinderlib-ceph-functional
-        - cinder-tempest-plugin-lvm-lio-barbican
+        - os-brick-src-tempest-lvm-lio-barbican
     post:
       jobs:
         - publish-openstack-python-branch-tarball
@@ -41,11 +41,19 @@
       - openstack/cinder
 
 - job:
-    name: cinderlib-lvm-functional
+    name: cinderlib-functional
     parent: openstack-tox-functional-with-sudo
     required-projects:
       - openstack/os-brick
       - openstack/cinder
+    pre-run: playbooks/required-projects-bindeps.yaml
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^doc/.*$
+      - ^releasenotes/.*$
+- job:
+    name: cinderlib-lvm-functional
+    parent: cinderlib-functional
     pre-run: playbooks/setup-lvm.yaml
     nodeset: centos-8
     vars:
@@ -57,18 +65,11 @@
         NOSE_WITH_HTML_OUTPUT: 1
         NOSE_HTML_OUT_FILE: nose_results.html
         NOSE_WITH_XUNIT: 1
-    irrelevant-files: &documentation-files
-      - ^.*\.rst$
-      - ^doc/.*$
-      - ^releasenotes/.*$
 
 # The Ceph job tests cinderlib without unnecessary libraries
 - job:
     name: cinderlib-ceph-functional
-    parent: openstack-tox-functional-with-sudo
-    required-projects:
-      - openstack/os-brick
-      - openstack/cinder
+    parent: cinderlib-functional
     pre-run: playbooks/setup-ceph.yaml
     # TODO: move back to centos-8 as soon as Ceph packages are available
     nodeset: ubuntu-bionic
@@ -80,4 +81,3 @@
         NOSE_WITH_HTML_OUTPUT: 1
         NOSE_HTML_OUT_FILE: nose_results.html
         NOSE_WITH_XUNIT: 1
-    irrelevant-files: *documentation-files
