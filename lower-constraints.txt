@@ -1,8 +1,11 @@
-cinder==13.0.0
+cinder==16.0.0
 mock==2.0.0
-os-brick==2.7.0
+os-brick==3.0.1
+oslo.config==5.2.0
+oslo.context==2.22.0
+oslo.db==4.35.0
 pbr==2.0.0
 six==1.10.0
-stestr==1.0.0
+stestr==2.2.0
 stevedore==1.20.0
 urllib3==1.21.1

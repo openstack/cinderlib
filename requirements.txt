@@ -1,1 +1,2 @@
-cinder>=15.0.0 # Apache-2.0
+cinder>=16.0.0,<17.0.0 # Apache-2.0
+os-brick>=3.0.1
