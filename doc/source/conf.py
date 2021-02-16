@@ -229,8 +229,8 @@ latex_elements = {
 # [howto/manual]).
 latex_documents = [
     ('index', 'doc-cinderlib.tex',
-     u'Cinder Library Documentation',
-     u'Cinder Contributors', 'manual'),
+     'Cinder Library Documentation',
+     'Cinder Contributors', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at
@@ -265,8 +265,8 @@ latex_additional_files = ['cinderlib.sty']
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'cinderlib',
-     u'Cinder Library Documentation',
-     [u'Cinder Contributors'], 1)
+     'Cinder Library Documentation',
+     ['Cinder Contributors'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -280,8 +280,8 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     ('index', 'cinderlib',
-     u'Cinder Library Documentation',
-     u'Cinder Contributors',
+     'Cinder Library Documentation',
+     'Cinder Contributors',
      'cinderlib',
      'Direct usage of Cinder Block Storage drivers without the services.',
      'Miscellaneous'),
