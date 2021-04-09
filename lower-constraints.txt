@@ -1,6 +1,6 @@
-cinder==17.0.0
+cinder==18.0.0
 mock==2.0.0
-os-brick==4.0.1
+os-brick==4.3.1
 oslo.context==2.23.0
 oslo.db==6.0.0
 pbr==5.4.1
