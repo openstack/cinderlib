@@ -49,7 +49,7 @@ class BaseFunctTestCase(base_tests.unittest.TestCase):
             for option in driver_info['driver_options']:
                 self.assertIsInstance(option['type'], expected_type)
                 if is_v2:
-                    self.assertTrue('type_class' in option['type'])
+                    self.assertIn('type_class', option['type'])
                 else:
                     for v in option.values():
                         self.assertIsInstance(v, str)
