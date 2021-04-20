@@ -33,7 +33,7 @@ solutions:
 - Database in memory
 
 Using the memory mechanisms users can still use the JSON serialization
-mechanism to store the medatada.
+mechanism to store the metadata.
 
 Currently we have memory and database plugins.  Users can store the data
 wherever they want using the JSON serialization mechanism or with a custom
