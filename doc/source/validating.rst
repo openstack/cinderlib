@@ -176,7 +176,7 @@ functional tests using environmental variables:
 
 If we encounter problems while running the functional tests, but the *Cinder*
 service is running just fine, we can go to the #openstack-cinder IRC channel in
-Freenode, or send an email to the `discuss-openstack mailing list`_ starting
+OFTC, or send an email to the `discuss-openstack mailing list`_ starting
 the subject with *[cinderlib]*.
 
 Cinder 3rd party CI
