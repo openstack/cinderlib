@@ -24,19 +24,20 @@ from cinder import objects as cinder_objs
 import migrate
 from oslo_config import cfg
 from oslo_db import exception
+from oslo_db.sqlalchemy import models as oslo_db_models
 from oslo_log import log
+import sqlalchemy as sa
 
 from cinderlib import objects
 from cinderlib.persistence import base as persistence_base
 
-
 LOG = log.getLogger(__name__)
 
 
-class KeyValue(models.BASE, models.models.ModelBase, objects.KeyValue):
+class KeyValue(models.BASE, oslo_db_models.ModelBase, objects.KeyValue):
     __tablename__ = 'cinderlib_persistence_key_value'
-    key = models.Column(models.String(255), primary_key=True)
-    value = models.Column(models.Text)
+    key = sa.Column(sa.String(255), primary_key=True)
+    value = sa.Column(sa.Text)
 
 
 class DBPersistence(persistence_base.PersistenceDriverBase):

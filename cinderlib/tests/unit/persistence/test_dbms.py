@@ -17,6 +17,7 @@ import tempfile
 from unittest import mock
 
 from cinder.db.sqlalchemy import api as sqla_api
+from cinder.db.sqlalchemy import models as sqla_models
 from cinder import objects as cinder_ovos
 from oslo_db import api as oslo_db_api
 
@@ -31,11 +32,10 @@ class TestDBPersistence(base.BasePersistenceTest):
                        'connection': CONNECTION}
 
     def tearDown(self):
-        sqla_api.model_query(self.context, sqla_api.models.Snapshot).delete()
+        sqla_api.model_query(self.context, sqla_models.Snapshot).delete()
         sqla_api.model_query(self.context,
-                             sqla_api.models.VolumeAttachment).delete()
-        sqla_api.model_query(self.context,
-                             sqla_api.models.Volume).delete()
+                             sqla_models.VolumeAttachment).delete()
+        sqla_api.model_query(self.context, sqla_models.Volume).delete()
         sqla_api.get_session().query(dbms.KeyValue).delete()
         super(TestDBPersistence, self).tearDown()
 
