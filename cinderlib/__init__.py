@@ -20,6 +20,8 @@ except ImportError:
     # For everyone else
     import importlib_metadata
 
+from os_brick.initiator import connector
+
 from cinderlib import _fake_packages  # noqa F401
 from cinderlib import cinderlib
 from cinderlib import objects
@@ -48,5 +50,5 @@ setup = cinderlib.setup
 Backend = cinderlib.Backend
 
 # This gets reassigned on initialization by nos_brick.init
-get_connector_properties = objects.brick_connector.get_connector_properties
+get_connector_properties = connector.get_connector_properties
 list_supported_drivers = cinderlib.Backend.list_supported_drivers

@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    `Bug #1883720 <https://bugs.launchpad.net/cinderlib/+bug/1883720>`_: Added
+    privsep support, increasing cinderlib's compatibility with Cinder drivers.

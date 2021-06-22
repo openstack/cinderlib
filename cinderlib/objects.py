@@ -20,9 +20,9 @@ from cinder import context
 from cinder import exception as cinder_exception
 from cinder import objects as cinder_objs
 from cinder.objects import base as cinder_base_ovo
+from cinder.volume import volume_utils as volume_utils
 from os_brick import exception as brick_exception
 from os_brick import initiator as brick_initiator
-from os_brick.initiator import connector as brick_connector
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import timeutils
@@ -542,9 +542,7 @@ class Volume(NamedObject):
         return snap
 
     def attach(self):
-        connector_dict = brick_connector.get_connector_properties(
-            self.backend_class.root_helper,
-            cfg.CONF.my_ip,
+        connector_dict = volume_utils.brick_get_connector_properties(
             self.backend.configuration.use_multipath_for_image_xfer,
             self.backend.configuration.enforce_multipath_for_image_xfer)
         conn = self.connect(connector_dict)
@@ -772,8 +770,8 @@ class Connection(Object, LazyVolumeAttr):
         if not self._connector:
             if not self.conn_info:
                 return None
-            self._connector = brick_connector.InitiatorConnector.factory(
-                self.protocol, self.backend_class.root_helper,
+            self._connector = volume_utils.brick_get_connector(
+                self.protocol,
                 use_multipath=self.use_multipath,
                 device_scan_attempts=self.scan_attempts,
                 # NOTE(geguileo): afaik only remotefs uses the connection info

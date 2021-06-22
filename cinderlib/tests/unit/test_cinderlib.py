@@ -14,9 +14,11 @@
 #    under the License.
 
 import collections
+import configparser
 import os
 from unittest import mock
 
+from cinder import utils
 import ddt
 from oslo_config import cfg
 
@@ -168,16 +170,16 @@ class TestCinderlib(base.BaseTest):
 
         self.assertIsNone(cfg._CachedArgumentParser().parse_args())
 
+    @mock.patch('cinderlib.Backend._set_priv_helper')
     @mock.patch('cinderlib.Backend._set_cinder_config')
     @mock.patch('urllib3.disable_warnings')
     @mock.patch('cinder.coordination.COORDINATOR')
-    @mock.patch('cinderlib.Backend._set_priv_helper')
     @mock.patch('cinderlib.Backend._set_logging')
     @mock.patch('cinderlib.cinderlib.serialization')
     @mock.patch('cinderlib.Backend.set_persistence')
     def test_global_setup(self, mock_set_pers, mock_serial, mock_log,
-                          mock_sudo, mock_coord, mock_disable_warn,
-                          mock_set_config):
+                          mock_coord, mock_disable_warn, mock_set_config,
+                          mock_priv_helper):
         cls = objects.Backend
         cls.global_initialization = False
         cinder_cfg = {'k': 'v', 'k2': 'v2'}
@@ -201,7 +203,6 @@ class TestCinderlib(base.BaseTest):
 
         self.assertEqual(mock.sentinel.fail_missing_backend,
                          cls.fail_on_missing_backend)
-        self.assertEqual(mock.sentinel.root_helper, cls.root_helper)
         self.assertEqual(mock.sentinel.project_id, cls.project_id)
         self.assertEqual(mock.sentinel.user_id, cls.user_id)
         self.assertEqual(mock.sentinel.non_uuid_ids, cls.non_uuid_ids)
@@ -209,8 +210,9 @@ class TestCinderlib(base.BaseTest):
 
         mock_serial.setup.assert_called_once_with(cls)
         mock_log.assert_called_once_with(mock.sentinel.disable_logs)
-        mock_sudo.assert_called_once_with(mock.sentinel.root_helper)
         mock_coord.start.assert_called_once_with()
+
+        mock_priv_helper.assert_called_once_with(mock.sentinel.root_helper)
 
         self.assertEqual(2, mock_disable_warn.call_count)
         self.assertTrue(cls.global_initialization)
@@ -494,3 +496,158 @@ class TestCinderlib(base.BaseTest):
         self.backend._apply_backend_workarounds(cfg)
         self.assertEqual(mock_conf.list_all_sections.return_value,
                          mock_conf.list_all_sections())
+
+    @mock.patch.dict(os.environ, {}, clear=True)
+    @mock.patch('os.path.exists')
+    @mock.patch('configparser.ConfigParser')
+    @mock.patch('oslo_privsep.priv_context.init')
+    def test__set_priv_helper_no_venv_sudo(self, mock_ctxt_init, mock_parser,
+                                           mock_exists):
+        original_helper_func = utils.get_root_helper
+
+        original_rootwrap_config = cfg.CONF.rootwrap_config
+        rootwrap_config = '/etc/cinder/rootwrap.conf'
+        # Not using set_override because it's not working as it should
+        cfg.CONF.rootwrap_config = rootwrap_config
+
+        try:
+            self.backend._set_priv_helper('sudo')
+
+            mock_exists.assert_not_called()
+            mock_parser.assert_not_called()
+            mock_ctxt_init.assert_not_called()
+            self.assertIs(original_helper_func, utils.get_root_helper)
+            self.assertIs(rootwrap_config, cfg.CONF.rootwrap_config)
+        finally:
+            cfg.CONF.rootwrap_config = original_rootwrap_config
+
+    @mock.patch('configparser.ConfigParser.read', mock.Mock())
+    @mock.patch('configparser.ConfigParser.write', mock.Mock())
+    @mock.patch('cinderlib.cinderlib.utils.__file__',
+                '/.venv/lib/python3.7/site-packages/cinder')
+    @mock.patch('cinderlib.cinderlib.os.environ', {'VIRTUAL_ENV': '/.venv'})
+    @mock.patch('cinderlib.cinderlib.open')
+    @mock.patch('os.path.exists', return_value=False)
+    @mock.patch('oslo_privsep.priv_context.init')
+    def test__set_priv_helper_venv_no_sudo(self, mock_ctxt_init, mock_exists,
+                                           mock_open):
+
+        file_contents = {'DEFAULT': {'filters_path': '/etc/cinder/rootwrap.d',
+                                     'exec_dirs': '/dir1,/dir2'}}
+        parser = configparser.ConfigParser()
+
+        venv_wrap_cfg = '/.venv/etc/cinder/rootwrap.conf'
+
+        original_helper_func = utils.get_root_helper
+        original_rootwrap_config = cfg.CONF.rootwrap_config
+        # Not using set_override because it's not working as it should
+        default_wrap_cfg = '/etc/cinder/rootwrap.conf'
+        cfg.CONF.rootwrap_config = default_wrap_cfg
+
+        try:
+            with mock.patch('cinder.utils.get_root_helper',
+                            return_value='sudo wrapper') as mock_helper, \
+                    mock.patch.dict(parser, file_contents, clear=True), \
+                    mock.patch('configparser.ConfigParser') as mock_parser:
+                mock_parser.return_value = parser
+                self.backend._set_priv_helper('mysudo')
+
+                mock_exists.assert_called_once_with(default_wrap_cfg)
+
+                mock_parser.assert_called_once_with()
+                parser.read.assert_called_once_with(venv_wrap_cfg)
+
+                self.assertEqual('/.venv/etc/cinder/rootwrap.d',
+                                 parser['DEFAULT']['filters_path'])
+                self.assertEqual('/.venv/bin,/dir1,/dir2',
+                                 parser['DEFAULT']['exec_dirs'])
+
+                mock_open.assert_called_once_with(venv_wrap_cfg, 'w')
+                parser.write.assert_called_once_with(
+                    mock_open.return_value.__enter__.return_value)
+
+                self.assertEqual('mysudo wrapper', utils.get_root_helper())
+
+                mock_helper.assert_called_once_with()
+                mock_ctxt_init.assert_called_once_with(root_helper=['mysudo'])
+
+            self.assertIs(original_helper_func, utils.get_root_helper)
+            self.assertEqual(venv_wrap_cfg, cfg.CONF.rootwrap_config)
+        finally:
+            cfg.CONF.rootwrap_config = original_rootwrap_config
+            utils.get_root_helper = original_helper_func
+
+    @mock.patch('configparser.ConfigParser.read', mock.Mock())
+    @mock.patch('configparser.ConfigParser.write', mock.Mock())
+    @mock.patch('cinderlib.cinderlib.utils.__file__', '/opt/stack/cinder')
+    @mock.patch('cinderlib.cinderlib.os.environ', {'VIRTUAL_ENV': '/.venv'})
+    @mock.patch('shutil.copytree')
+    @mock.patch('glob.glob',)
+    @mock.patch('cinderlib.cinderlib.open')
+    @mock.patch('os.path.exists', return_value=False)
+    @mock.patch('oslo_privsep.priv_context.init')
+    def test__set_priv_helper_venv_editable_no_sudo(self, mock_ctxt_init,
+                                                    mock_exists, mock_open,
+                                                    mock_glob, mock_copy):
+
+        link_file = '/.venv/lib/python3.7/site-packages/cinder.egg-link'
+        cinder_source_path = '/opt/stack/cinder'
+        link_file_contents = cinder_source_path + '\n.'
+        mock_glob.return_value = [link_file]
+        open_fd = mock_open.return_value.__enter__.return_value
+        open_fd.read.return_value = link_file_contents
+
+        file_contents = {'DEFAULT': {'filters_path': '/etc/cinder/rootwrap.d',
+                                     'exec_dirs': '/dir1,/dir2'}}
+        parser = configparser.ConfigParser()
+
+        venv_wrap_cfg = '/.venv/etc/cinder/rootwrap.conf'
+
+        original_helper_func = utils.get_root_helper
+        original_rootwrap_config = cfg.CONF.rootwrap_config
+        # Not using set_override because it's not working as it should
+        default_wrap_cfg = '/etc/cinder/rootwrap.conf'
+        cfg.CONF.rootwrap_config = default_wrap_cfg
+
+        try:
+            with mock.patch('cinder.utils.get_root_helper',
+                            return_value='sudo wrapper') as mock_helper, \
+                    mock.patch.dict(parser, file_contents, clear=True), \
+                    mock.patch('configparser.ConfigParser') as mock_parser:
+                mock_parser.return_value = parser
+
+                self.backend._set_priv_helper('mysudo')
+
+                mock_glob.assert_called_once_with(
+                    '/.venv/lib/python*/site-packages/cinder.egg-link')
+
+                self.assertEqual(2, mock_exists.call_count)
+                mock_exists.assert_has_calls([mock.call(default_wrap_cfg),
+                                              mock.call(venv_wrap_cfg)])
+
+                self.assertEqual(2, mock_open.call_count)
+                mock_open.assert_any_call(link_file, 'r')
+                mock_copy.assert_called_once_with(
+                    cinder_source_path + '/etc/cinder', '/.venv/etc/cinder')
+
+                mock_parser.assert_called_once_with()
+                parser.read.assert_called_once_with(venv_wrap_cfg)
+
+                self.assertEqual('/.venv/etc/cinder/rootwrap.d',
+                                 parser['DEFAULT']['filters_path'])
+                self.assertEqual('/.venv/bin,/dir1,/dir2',
+                                 parser['DEFAULT']['exec_dirs'])
+
+                mock_open.assert_any_call(venv_wrap_cfg, 'w')
+                parser.write.assert_called_once_with(open_fd)
+
+                self.assertEqual('mysudo wrapper', utils.get_root_helper())
+
+                mock_helper.assert_called_once_with()
+                mock_ctxt_init.assert_called_once_with(root_helper=['mysudo'])
+
+            self.assertIs(original_helper_func, utils.get_root_helper)
+            self.assertEqual(venv_wrap_cfg, cfg.CONF.rootwrap_config)
+        finally:
+            cfg.CONF.rootwrap_config = original_rootwrap_config
+            utils.get_root_helper = original_helper_func

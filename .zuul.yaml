@@ -76,7 +76,6 @@
     vars:
       tox_environment:
         CL_FTEST_CFG: "{{ ansible_user_dir }}/{{ zuul.projects['opendev.org/openstack/cinderlib'].src_dir }}/cinderlib/tests/functional/ceph.yaml"
-        CL_FTEST_ROOT_HELPER: sudo
         # These come from great-great-grandparent tox job
         NOSE_WITH_HTML_OUTPUT: 1
         NOSE_HTML_OUT_FILE: nose_results.html

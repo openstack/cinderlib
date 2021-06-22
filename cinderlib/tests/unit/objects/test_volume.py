@@ -311,15 +311,13 @@ class TestVolume(base.BaseTest):
         self.assertEqual('error', snap.status)
         mock_create.assert_called_once_with(snap._ovo)
 
-    @mock.patch('os_brick.initiator.connector.get_connector_properties')
+    @mock.patch('cinder.volume.volume_utils.brick_get_connector_properties')
     @mock.patch('cinderlib.objects.Volume.connect')
     def test_attach(self, mock_connect, mock_conn_props):
         vol = objects.Volume(self.backend_name, status='available', size=10)
         res = vol.attach()
 
         mock_conn_props.assert_called_once_with(
-            self.backend.root_helper,
-            mock.ANY,
             self.backend.configuration.use_multipath_for_image_xfer,
             self.backend.configuration.enforce_multipath_for_image_xfer)
 
@@ -327,7 +325,7 @@ class TestVolume(base.BaseTest):
         mock_connect.return_value.attach.assert_called_once_with()
         self.assertEqual(mock_connect.return_value, res)
 
-    @mock.patch('os_brick.initiator.connector.get_connector_properties')
+    @mock.patch('cinder.volume.volume_utils.brick_get_connector_properties')
     @mock.patch('cinderlib.objects.Volume.connect')
     def test_attach_error_connect(self, mock_connect, mock_conn_props):
         vol = objects.Volume(self.backend_name, status='available', size=10)
@@ -336,8 +334,6 @@ class TestVolume(base.BaseTest):
         self.assertRaises(exception.NotFound, vol.attach)
 
         mock_conn_props.assert_called_once_with(
-            self.backend.root_helper,
-            mock.ANY,
             self.backend.configuration.use_multipath_for_image_xfer,
             self.backend.configuration.enforce_multipath_for_image_xfer)
 
@@ -345,7 +341,7 @@ class TestVolume(base.BaseTest):
         mock_connect.return_value.attach.assert_not_called()
 
     @mock.patch('cinderlib.objects.Volume.disconnect')
-    @mock.patch('os_brick.initiator.connector.get_connector_properties')
+    @mock.patch('cinder.volume.volume_utils.brick_get_connector_properties')
     @mock.patch('cinderlib.objects.Volume.connect')
     def test_attach_error_attach(self, mock_connect, mock_conn_props,
                                  mock_disconnect):
@@ -356,8 +352,6 @@ class TestVolume(base.BaseTest):
         self.assertRaises(exception.NotFound, vol.attach)
 
         mock_conn_props.assert_called_once_with(
-            self.backend.root_helper,
-            mock.ANY,
             self.backend.configuration.use_multipath_for_image_xfer,
             self.backend.configuration.enforce_multipath_for_image_xfer)
 
