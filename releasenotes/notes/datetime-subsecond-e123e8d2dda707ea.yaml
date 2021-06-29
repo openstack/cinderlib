@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    `Bug #1933964 <https://bugs.launchpad.net/cinder/+bug/1933964>`_: Fixed
+    date time fields losing subsecond resolution on serialization.

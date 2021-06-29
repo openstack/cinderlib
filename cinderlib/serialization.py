@@ -54,8 +54,8 @@ def setup(backend_class):
     fields.List.to_primitive = iterable_to_primitive
     fields.Set.to_primitive = iterable_to_primitive
     fields.Dict.to_primitive = dict_to_primitive
+    fields.DateTime.to_primitive = staticmethod(datetime_to_primitive)
     wrap_to_primitive(fields.FieldType)
-    wrap_to_primitive(fields.DateTime)
     wrap_to_primitive(fields.IPAddress)
 
 
@@ -152,6 +152,25 @@ def dict_to_primitive(self, obj, attr, value, visited=None):
         primitive[key] = self._element_type.to_primitive(
             obj, '%s["%s"]' % (attr, key), elem, visited)
     return primitive
+
+
+def datetime_to_primitive(obj, attr, value, visited=None):
+    """Stringify time in ISO 8601 with subsecond format.
+
+    This is the same code as the one used by the OVO DateTime to_primitive
+    but adding the subsecond resolution with the '.%f' part in strftime call.
+
+    This is backward compatible with cinderlib using code that didn't generate
+    subsecond resolution, because the from_primitive code of the OVO field uses
+    oslo_utils.timeutils.parse_isotime which in the end uses
+    iso8601.parse_date, and since the subsecond format is also ISO8601 it is
+    properly parsed.
+    """
+    st = value.strftime('%Y-%m-%dT%H:%M:%S.%f')
+    tz = value.tzinfo.tzname(None) if value.tzinfo else 'UTC'
+    # Need to handle either iso8601 or python UTC format
+    st += ('Z' if tz in ['UTC', 'UTC+00:00'] else tz)
+    return st
 
 
 def load(json_src, save=False):
