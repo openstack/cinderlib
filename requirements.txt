@@ -1,6 +1,4 @@
-# restrict cinder to the wallaby series only
-cinder>=18.0.0,<19.0.0 # Apache-2.0
-# specify brick wallaby (upper bound controlled by openstack upper-constraints)
-os-brick>=4.3.1
+cinder>=18.0.0 # Apache-2.0
+os-brick>=4.4.0
 
 importlib_metadata>=1.7.0;python_version<'3.8' # Apache-2.0
