@@ -184,40 +184,49 @@ class TestCinderlib(base.BaseTest):
         cls.global_initialization = False
         cinder_cfg = {'k': 'v', 'k2': 'v2'}
 
-        cls.global_setup(mock.sentinel.locks_path,
-                         mock.sentinel.root_helper,
-                         mock.sentinel.ssl_warnings,
-                         mock.sentinel.disable_logs,
-                         mock.sentinel.non_uuid_ids,
-                         mock.sentinel.backend_info,
-                         mock.sentinel.project_id,
-                         mock.sentinel.user_id,
-                         mock.sentinel.pers_cfg,
-                         mock.sentinel.fail_missing_backend,
-                         mock.sentinel.host,
-                         **cinder_cfg)
+        # Save the current class configuration
+        saved_cfg = vars(cls).copy()
 
-        mock_set_config.assert_called_once_with(mock.sentinel.host,
-                                                mock.sentinel.locks_path,
-                                                cinder_cfg)
+        try:
+            cls.global_setup(mock.sentinel.locks_path,
+                             mock.sentinel.root_helper,
+                             mock.sentinel.ssl_warnings,
+                             mock.sentinel.disable_logs,
+                             mock.sentinel.non_uuid_ids,
+                             mock.sentinel.backend_info,
+                             mock.sentinel.project_id,
+                             mock.sentinel.user_id,
+                             mock.sentinel.pers_cfg,
+                             mock.sentinel.fail_missing_backend,
+                             mock.sentinel.host,
+                             **cinder_cfg)
 
-        self.assertEqual(mock.sentinel.fail_missing_backend,
-                         cls.fail_on_missing_backend)
-        self.assertEqual(mock.sentinel.project_id, cls.project_id)
-        self.assertEqual(mock.sentinel.user_id, cls.user_id)
-        self.assertEqual(mock.sentinel.non_uuid_ids, cls.non_uuid_ids)
-        mock_set_pers.assert_called_once_with(mock.sentinel.pers_cfg)
+            mock_set_config.assert_called_once_with(mock.sentinel.host,
+                                                    mock.sentinel.locks_path,
+                                                    cinder_cfg)
 
-        mock_serial.setup.assert_called_once_with(cls)
-        mock_log.assert_called_once_with(mock.sentinel.disable_logs)
-        mock_coord.start.assert_called_once_with()
+            self.assertEqual(mock.sentinel.fail_missing_backend,
+                             cls.fail_on_missing_backend)
+            self.assertEqual(mock.sentinel.project_id, cls.project_id)
+            self.assertEqual(mock.sentinel.user_id, cls.user_id)
+            self.assertEqual(mock.sentinel.non_uuid_ids, cls.non_uuid_ids)
+            mock_set_pers.assert_called_once_with(mock.sentinel.pers_cfg)
 
-        mock_priv_helper.assert_called_once_with(mock.sentinel.root_helper)
+            mock_serial.setup.assert_called_once_with(cls)
+            mock_log.assert_called_once_with(mock.sentinel.disable_logs)
+            mock_coord.start.assert_called_once_with()
 
-        self.assertEqual(2, mock_disable_warn.call_count)
-        self.assertTrue(cls.global_initialization)
-        self.assertEqual(mock.sentinel.backend_info,
-                         cls.output_all_backend_info)
+            mock_priv_helper.assert_called_once_with(mock.sentinel.root_helper)
+
+            self.assertEqual(2, mock_disable_warn.call_count)
+            self.assertTrue(cls.global_initialization)
+            self.assertEqual(mock.sentinel.backend_info,
+                             cls.output_all_backend_info)
+        finally:
+            # Restore the class configuration
+            for k, v in saved_cfg.items():
+                if not k.startswith('__'):
+                    setattr(cls, k, v)
 
     @mock.patch('cinderlib.cinderlib.LOG.warning')
     def test__validate_and_set_options(self, warning_mock):
