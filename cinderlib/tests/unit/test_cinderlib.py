@@ -104,6 +104,47 @@ class TestCinderlib(base.BaseTest):
         self.assertEqual(('default',), backend.pool_names)
         mock_workarounds.assert_called_once_with(mock_config.return_value)
 
+    @mock.patch('cinderlib.Backend._apply_backend_workarounds')
+    @mock.patch('oslo_utils.importutils.import_object')
+    @mock.patch('cinderlib.Backend._get_backend_config')
+    @mock.patch('cinderlib.Backend.global_setup')
+    def test_init_setup(self, mock_global_setup, mock_config, mock_import,
+                        mock_workarounds):
+        """Test initialization with the new 'setup' driver method."""
+        cfg.CONF.set_override('host', 'host')
+        driver_cfg = {'k': 'v', 'k2': 'v2', 'volume_backend_name': 'Test'}
+        cinderlib.Backend.global_initialization = False
+        driver = mock_import.return_value
+        driver.do_setup.side_effect = AttributeError
+        driver.capabilities = {'pools': [{'pool_name': 'default'}]}
+
+        backend = objects.Backend(**driver_cfg)
+
+        mock_global_setup.assert_called_once_with()
+        self.assertIn('Test', objects.Backend.backends)
+        self.assertEqual(backend, objects.Backend.backends['Test'])
+        mock_config.assert_called_once_with(driver_cfg)
+
+        conf = mock_config.return_value
+        mock_import.assert_called_once_with(conf.volume_driver,
+                                            configuration=conf,
+                                            db=self.persistence.db,
+                                            host='host@Test',
+                                            cluster_name=None,
+                                            active_backend_id=None)
+        self.assertEqual(backend.driver, driver)
+        driver.do_setup.assert_called_once_with(objects.CONTEXT)
+        driver.check_for_setup_error.assert_not_called()
+        driver.setup.assert_called_once_with(objects.CONTEXT)
+        driver.init_capabilities.assert_called_once_with()
+        driver.set_throttle.assert_called_once_with()
+        driver.set_initialized.assert_called_once_with()
+        self.assertEqual(driver_cfg, backend._driver_cfg)
+        self.assertIsNone(backend._volumes)
+        driver.get_volume_stats.assert_not_called()
+        self.assertEqual(('default',), backend.pool_names)
+        mock_workarounds.assert_called_once_with(mock_config.return_value)
+
     @mock.patch.object(objects.Backend, 'global_initialization', True)
     @mock.patch.object(objects.Backend, '_apply_backend_workarounds')
     @mock.patch('oslo_utils.importutils.import_object')

@@ -106,8 +106,14 @@ class Backend(object):
             host='%s@%s' % (cfg.CONF.host, volume_backend_name),
             cluster_name=None,  # We don't use cfg.CONF.cluster for now
             active_backend_id=None)  # No failover for now
-        self.driver.do_setup(objects.CONTEXT)
-        self.driver.check_for_setup_error()
+
+        # do_setup and check_for_setup errors were merged into setup in Yoga.
+        # First try the old interface, and if it fails, try the new one.
+        try:
+            self.driver.do_setup(objects.CONTEXT)
+            self.driver.check_for_setup_error()
+        except AttributeError:
+            self.driver.setup(objects.CONTEXT)
 
         self.driver.init_capabilities()
         self.driver.set_throttle()
