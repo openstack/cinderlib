@@ -1,4 +1,6 @@
-cinder>=18.0.0 # Apache-2.0
-os-brick>=4.4.0
+# restrict cinder to the xena release only
+cinder>=19.0.0,<20.0.0 # Apache-2.0
+# brick upper bound is controlled by xena/upper-constraints
+os-brick>=5.0.1
 
 importlib_metadata>=1.7.0;python_version<'3.8' # Apache-2.0
