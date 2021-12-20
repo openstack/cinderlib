@@ -7,7 +7,7 @@
       jobs:
         - openstack-tox-pep8
         - cinderlib-tox-py36
-        - cinderlib-tox-py37
+        - cinderlib-tox-py39
 
         - cinderlib-lvm-functional
         - cinderlib-ceph-functional
@@ -17,7 +17,7 @@
       jobs:
         - openstack-tox-pep8
         - cinderlib-tox-py36
-        - cinderlib-tox-py37
+        - cinderlib-tox-py39
 
         - cinderlib-lvm-functional
         - cinderlib-ceph-functional
@@ -34,8 +34,8 @@
       - openstack/cinder
 
 - job:
-    name: cinderlib-tox-py37
-    parent: openstack-tox-py37
+    name: cinderlib-tox-py39
+    parent: openstack-tox-py39
     required-projects:
       - openstack/os-brick
       - openstack/cinder
