@@ -1,4 +1,6 @@
-cinder>=19.0.0
-os-brick>=5.1.0
+# restrict cinder to the yoga release only
+cinder>=20.0.0.0,<21.0.0  # Apache-2.0
+# brick upper bound is controlled by yoga/upper-constraints
+os-brick>=5.2.0  # Apache-2.0
 
 importlib_metadata>=1.7.0;python_version<'3.8' # Apache-2.0
