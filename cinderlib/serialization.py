@@ -24,7 +24,6 @@ on the OVO's serialization mechanism to add/get additional data we want.
 
 import functools
 import json as json_lib
-import six
 
 from cinder.objects import base as cinder_base_ovo
 from oslo_versionedobjects import base as base_ovo
@@ -175,7 +174,7 @@ def datetime_to_primitive(obj, attr, value, visited=None):
 
 def load(json_src, save=False):
     """Load any json serialized cinderlib object."""
-    if isinstance(json_src, six.string_types):
+    if isinstance(json_src, str):
         json_src = json_lib.loads(json_src)
 
     if isinstance(json_src, list):

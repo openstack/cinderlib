@@ -33,13 +33,11 @@ input file, it will default to /etc/cinder/cinder.conf.
 
 import sys
 
-import six
-
 from cinderlib.cmd import cinder_to_yaml
 
 
 def _to_str(value):
-    if isinstance(value, six.string_types):
+    if isinstance(value, str):
         return '"' + value + '"'
     return value
 

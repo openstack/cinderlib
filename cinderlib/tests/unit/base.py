@@ -17,24 +17,10 @@
 import unittest
 from unittest import mock
 
-from oslo_config import cfg
-import six
-
 import cinderlib
 from cinderlib.tests.unit import utils
 
 
-def _replace_oslo_cli_parse():
-    original_cli_parser = cfg.ConfigOpts._parse_cli_opts
-
-    def _parse_cli_opts(self, args):
-        return original_cli_parser(self, [])
-
-    cfg.ConfigOpts._parse_cli_opts = six.create_unbound_method(_parse_cli_opts,
-                                                               cfg.ConfigOpts)
-
-
-_replace_oslo_cli_parse()
 cinderlib.setup(persistence_config={'storage': utils.get_mock_persistence()})
 
 

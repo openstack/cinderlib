@@ -26,7 +26,6 @@ from cinderlib import _fake_packages  # noqa F401
 from cinderlib import cinderlib
 from cinderlib import objects
 from cinderlib import serialization
-from cinderlib import workarounds  # noqa
 
 try:
     __version__ = importlib_metadata.version('cinderlib')

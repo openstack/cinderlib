@@ -19,9 +19,7 @@ import subprocess
 import tempfile
 import unittest
 
-from oslo_config import cfg
 from oslo_utils import strutils
-import six
 import yaml
 
 import cinderlib
@@ -89,19 +87,8 @@ class BaseFunctTestCase(unittest.TestCase):
 
         return cls.tests_config
 
-    @staticmethod
-    def _replace_oslo_cli_parse():
-        original_cli_parser = cfg.ConfigOpts._parse_cli_opts
-
-        def _parse_cli_opts(self, args):
-            return original_cli_parser(self, [])
-
-        cfg.ConfigOpts._parse_cli_opts = six.create_unbound_method(
-            _parse_cli_opts, cfg.ConfigOpts)
-
     @classmethod
     def setUpClass(cls):
-        cls._replace_oslo_cli_parse()
         config = cls.ensure_config_loaded()
         # Use memory_db persistence instead of memory to ensure migrations work
         cinderlib.setup(root_helper=cls.ROOT_HELPER,

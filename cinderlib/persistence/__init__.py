@@ -14,7 +14,6 @@
 #    under the License.
 import inspect
 
-import six
 from stevedore import driver
 
 from cinderlib import exception
@@ -54,7 +53,7 @@ def setup(config):
                                                base.PersistenceDriverBase):
         return storage(**config)
 
-    if not isinstance(storage, six.string_types):
+    if not isinstance(storage, str):
         raise exception.InvalidPersistence(storage)
 
     persistence_driver = driver.DriverManager(

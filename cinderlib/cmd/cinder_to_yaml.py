@@ -16,7 +16,7 @@
 from os import path
 import yaml
 
-from six.moves import configparser
+import configparser
 
 from cinder.cmd import volume
 volume.objects.register_all()  # noqa

@@ -19,7 +19,6 @@ from cinder import objects
 from cinder.objects import base as cinder_base_ovo
 from oslo_utils import timeutils
 from oslo_versionedobjects import fields
-import six
 
 import cinderlib
 from cinderlib import serialization
@@ -90,7 +89,7 @@ class PersistenceDriverBase(object):
             resource._ovo.status = 'deleted'
 
     def reset_change_tracker(self, resource, fields=None):
-        if isinstance(fields, six.string_types):
+        if isinstance(fields, str):
             fields = (fields,)
         resource._ovo.obj_reset_changes(fields)
 

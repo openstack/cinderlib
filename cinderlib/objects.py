@@ -26,7 +26,6 @@ from os_brick import initiator as brick_initiator
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import timeutils
-import six
 
 from cinderlib import exception
 from cinderlib import utils
@@ -65,7 +64,7 @@ class Object(object):
                                      overwrite=False)
 
     def _get_backend(self, backend_name_or_obj):
-        if isinstance(backend_name_or_obj, six.string_types):
+        if isinstance(backend_name_or_obj, str):
             try:
                 return self.backend_class.backends[backend_name_or_obj]
             except KeyError:
@@ -219,7 +218,9 @@ class Object(object):
     def _raise_with_resource(self):
         exc_info = sys.exc_info()
         exc_info[1].resource = self
-        six.reraise(*exc_info)
+        if exc_info[1].__traceback__ is not exc_info[2]:
+            raise exc_info[1].with_traceback(exc_info[2])
+        raise exc_info[1]
 
 
 class NamedObject(Object):
@@ -296,7 +297,7 @@ class Volume(NamedObject):
 
     def __init__(self, backend_or_vol, pool_name=None, **kwargs):
         # Accept backend name for convenience
-        if isinstance(backend_or_vol, six.string_types):
+        if isinstance(backend_or_vol, str):
             backend_name = backend_or_vol
             backend_or_vol = self._get_backend(backend_or_vol)
         elif isinstance(backend_or_vol, self.backend_class):
@@ -678,8 +679,7 @@ class Connection(Object, LazyVolumeAttr):
         # If multipathed not defined autodetect based on connection info
         conn_info = conn_info['conn'].get('data', {})
         iscsi_mp = 'target_iqns' in conn_info and 'target_portals' in conn_info
-        fc_mp = not isinstance(conn_info.get('target_wwn', ''),
-                               six.string_types)
+        fc_mp = not isinstance(conn_info.get('target_wwn', ''), str)
         return iscsi_mp or fc_mp
 
     def __init__(self, *args, **kwargs):
