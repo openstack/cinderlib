@@ -30,27 +30,40 @@
     name: cinderlib-tox-py36
     parent: openstack-tox-py36
     required-projects:
-      - openstack/os-brick
-      - openstack/cinder
+      - name: openstack/os-brick
+        override-checkout: stable/yoga
+      - name: openstack/cinder
+        override-checkout: stable/yoga
+      - name: openstack/requirements
+        override-checkout: stable/yoga
 
 - job:
     name: cinderlib-tox-py39
     parent: openstack-tox-py39
     required-projects:
-      - openstack/os-brick
-      - openstack/cinder
+      - name: openstack/os-brick
+        override-checkout: stable/yoga
+      - name: openstack/cinder
+        override-checkout: stable/yoga
+      - name: openstack/requirements
+        override-checkout: stable/yoga
 
 - job:
     name: cinderlib-functional
     parent: openstack-tox-functional-with-sudo
     required-projects:
-      - openstack/os-brick
-      - openstack/cinder
+      - name: openstack/os-brick
+        override-checkout: stable/yoga
+      - name: openstack/cinder
+        override-checkout: stable/yoga
+      - name: openstack/requirements
+        override-checkout: stable/yoga
     pre-run: playbooks/required-projects-bindeps.yaml
     irrelevant-files:
       - ^.*\.rst$
       - ^doc/.*$
       - ^releasenotes/.*$
+
 - job:
     name: cinderlib-lvm-functional
     parent: cinderlib-functional
