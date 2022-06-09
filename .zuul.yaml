@@ -11,7 +11,7 @@
 
         - cinderlib-lvm-functional
         - cinderlib-ceph-functional
-        - os-brick-src-tempest-lvm-lio-barbican
+        - cinderlib-os-brick-src-tempest-lvm-lio-barbican-yoga
     gate:
       queue: integrated
       jobs:
@@ -21,7 +21,7 @@
 
         - cinderlib-lvm-functional
         - cinderlib-ceph-functional
-        - os-brick-src-tempest-lvm-lio-barbican
+        - cinderlib-os-brick-src-tempest-lvm-lio-barbican-yoga
     post:
       jobs:
         - publish-openstack-python-branch-tarball
@@ -93,3 +93,17 @@
         NOSE_WITH_HTML_OUTPUT: 1
         NOSE_HTML_OUT_FILE: nose_results.html
         NOSE_WITH_XUNIT: 1
+
+- job:
+    name: cinderlib-os-brick-src-tempest-lvm-lio-barbican-yoga
+    parent: os-brick-src-tempest-lvm-lio-barbican
+    description: |
+      Use this job during the phase when cinderlib master is still
+      the development branch of the cinder previous release.  When
+      cinderlib master and cinder master are the development branches
+      for the *same* release, you should use the parent job directly
+      in the check and gate, above.
+    override-checkout: stable/yoga
+    # NOTE: while the cinderlib stable/yoga branch does not exist,
+    # zuul will fall back to using cinderlib master, which is the
+    # behavior we want.
