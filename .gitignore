@@ -70,3 +70,4 @@ target/
 temp/
 
 cinder-lioadm
+local-upper-constraints.txt
