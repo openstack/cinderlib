@@ -61,7 +61,7 @@
           --net=host
           --volume /etc/ceph:/etc/ceph
           --privileged
-          ceph/daemon:latest-luminous
+          ceph/daemon:latest-pacific
           demo
 
       - name: Wait for ceph.conf
@@ -86,6 +86,10 @@
         file:
             path: /etc/ceph/ceph.client.admin.keyring
             mode: 0644
+
+      - name: Create rbd pool
+        command: |
+          docker exec ceph-demo ceph osd pool create rbd 8
 
       - shell: cat /etc/ceph/ceph.conf
         register: ceph_conf
