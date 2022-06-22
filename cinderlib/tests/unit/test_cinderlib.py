@@ -21,6 +21,7 @@ from unittest import mock
 from cinder import utils
 import ddt
 from oslo_config import cfg
+from oslo_privsep import priv_context
 
 import cinderlib
 from cinderlib import objects
@@ -506,6 +507,15 @@ class TestCinderlib(base.BaseTest):
         self.assertEqual(mock_conf.list_all_sections.return_value,
                          mock_conf.list_all_sections())
 
+    def _check_privsep_root_helper_opt(self, is_changed):
+        for opt in priv_context.OPTS:
+            if opt.name == 'helper_command':
+                break
+        helper_path = os.path.join(os.path.dirname(cinderlib.__file__),
+                                   'bin/venv-privsep-helper')
+        self.assertIs(is_changed,
+                      f'mysudo {helper_path}' == opt.default)
+
     @mock.patch.dict(os.environ, {}, clear=True)
     @mock.patch('os.path.exists')
     @mock.patch('configparser.ConfigParser')
@@ -527,6 +537,7 @@ class TestCinderlib(base.BaseTest):
             mock_ctxt_init.assert_not_called()
             self.assertIs(original_helper_func, utils.get_root_helper)
             self.assertIs(rootwrap_config, cfg.CONF.rootwrap_config)
+            self._check_privsep_root_helper_opt(is_changed=False)
         finally:
             cfg.CONF.rootwrap_config = original_rootwrap_config
 
@@ -582,6 +593,7 @@ class TestCinderlib(base.BaseTest):
 
             self.assertIs(original_helper_func, utils.get_root_helper)
             self.assertEqual(venv_wrap_cfg, cfg.CONF.rootwrap_config)
+            self._check_privsep_root_helper_opt(is_changed=True)
         finally:
             cfg.CONF.rootwrap_config = original_rootwrap_config
             utils.get_root_helper = original_helper_func
@@ -657,6 +669,7 @@ class TestCinderlib(base.BaseTest):
 
             self.assertIs(original_helper_func, utils.get_root_helper)
             self.assertEqual(venv_wrap_cfg, cfg.CONF.rootwrap_config)
+            self._check_privsep_root_helper_opt(is_changed=True)
         finally:
             cfg.CONF.rootwrap_config = original_rootwrap_config
             utils.get_root_helper = original_helper_func

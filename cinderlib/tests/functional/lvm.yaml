@@ -3,7 +3,8 @@
 #
 
 # Logs are way too verbose, so we disable them
-logs: false
+logs: true
+debug: true
 
 # We only define one backend
 backends:
