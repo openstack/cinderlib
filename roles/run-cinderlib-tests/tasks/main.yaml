@@ -6,5 +6,8 @@
     zuul_work_dir: "{{ cinderlib_base_dir }}"
     tox_environment:
       CL_FTEST_CFG: "{{ cinderlib_config_file }}"
-      CL_FTEST_ROOT_HELPER: "{{ cinderlib_root_helper }}"
       CL_FTEST_POOL_NAME: "{{ cinderlib_pool_name }}"
+      # Workaround for https://github.com/pypa/pip/issues/6264
+      PIP_OPTIONS: "--no-use-pep517"
+      CL_FTEST_DEBUG: " {{cinderlib_logs }}"
+      CL_FTEST_LOGGING: " {{cinderlib_debug }}"

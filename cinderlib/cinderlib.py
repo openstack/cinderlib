@@ -407,6 +407,27 @@ class Backend(object):
                 # Initialize privsep's context to not use 'sudo'
                 priv_context.init(root_helper=[root_helper])
 
+        # When using privsep from the system we need to replace the
+        # privsep-helper with our own to use the virtual env libraries.
+        if venv and not priv_context.__file__.startswith(venv):
+            # Use importlib.resources to support PEP 302-based import hooks
+            # Can only use importlib.resources on 3.10 because it was added to
+            # 3.7, but files to 3.9 and namespace packages only to 3.10
+            import sys
+            if sys.version_info[:2] > (3, 10):
+                from importlib.resources import files
+            else:
+                from importlib_resources import files
+            privhelper = files('cinderlib.bin').joinpath('venv-privsep-helper')
+            cmd = f'{root_helper} {privhelper}'
+
+            # Change default of the option instead of the value of the
+            # different contexts
+            for opt in priv_context.OPTS:
+                if opt.name == 'helper_command':
+                    opt.default = cmd
+                    break
+
         # Don't use server/client mode when running as root
         client_mode = not cls.im_root
         cinder.privsep.sys_admin_pctxt.set_client_mode(client_mode)
