@@ -62,6 +62,7 @@ class BaseFunctTestCase(unittest.TestCase):
     CONFIG_FILE = os.environ.get('CL_FTEST_CFG', '/etc/cinder/cinder.conf')
     PRECISION = os.environ.get('CL_FTEST_PRECISION', 0)
     LOGGING_ENABLED = get_bool_env('CL_FTEST_LOGGING', False)
+    DEBUG_ENABLED = get_bool_env('CL_FTEST_DEBUG', False)
     ROOT_HELPER = os.environ.get('CL_FTEST_ROOT_HELPER', 'sudo')
     MEMORY_PERSISTENCE = get_bool_env('CL_FTEST_MEMORY_PERSISTENCE', True)
     DEFAULT_POOL = os.environ.get('CL_FTEST_POOL_NAME', None)
@@ -78,6 +79,7 @@ class BaseFunctTestCase(unittest.TestCase):
                     cls.tests_config = yaml.safe_load(f)
             cls.tests_config.setdefault('logs', cls.LOGGING_ENABLED)
             cls.tests_config.setdefault('size_precision', cls.PRECISION)
+            cls.tests_config.setdefault('debug', cls.DEBUG_ENABLED)
 
             backend = cls.tests_config['backends'][0]
             if backend['volume_driver'].endswith('.RBDDriver'):
@@ -104,6 +106,7 @@ class BaseFunctTestCase(unittest.TestCase):
         # Use memory_db persistence instead of memory to ensure migrations work
         cinderlib.setup(root_helper=cls.ROOT_HELPER,
                         disable_logs=not config['logs'],
+                        debug=config['debug'],
                         persistence_config={'storage': 'memory_db'})
 
         if cls.MEMORY_PERSISTENCE:
@@ -113,6 +116,7 @@ class BaseFunctTestCase(unittest.TestCase):
             cinderlib.Backend.global_initialization = False
             cinderlib.setup(root_helper=cls.ROOT_HELPER,
                             disable_logs=not config['logs'],
+                            debug=config['debug'],
                             persistence_config={'storage': 'memory'})
 
         # Initialize backends

@@ -5,4 +5,14 @@
 params=()
 for arg in "$@"; do params+=("\"$arg\""); done
 params="${params[@]}"
-sudo -E --preserve-env=PATH,VIRTUAL_ENV /bin/bash -c "$params"
+# Preserve user site-packages from the caller on the root user call in case
+# it's a python program we are calling.
+local_path=`python -c "import site; print(site.USER_SITE)"`
+if [[ -n "$local_path" ]]; then
+    if [[ -z "$PYTHONPATH" ]]; then
+        PYTHONPATH="$local_path"
+    else
+        PYTHONPATH="$PYTHONPATH:$local_path"
+    fi
+fi
+sudo -E --preserve-env=PATH,VIRTUAL_ENV,PYTHONPATH PYTHONPATH="$PYTHONPATH" /bin/bash -c "$params"

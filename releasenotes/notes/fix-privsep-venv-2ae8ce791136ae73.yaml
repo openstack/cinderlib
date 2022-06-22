@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    `Bug #1979534 <https://bugs.launchpad.net/cinderlib/+bug/1979534>`_: Fix
+    issues running privileged commands within a virtual environments that use
+    system site-packages when the privsep package is installed system-wide or
+    when privileged commands use user site-packages.
