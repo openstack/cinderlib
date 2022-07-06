@@ -6,57 +6,70 @@
     check:
       jobs:
         - openstack-tox-pep8
-        - cinderlib-tox-py36
+        - cinderlib-tox-py38
         - cinderlib-tox-py39
+        - cinderlib-tox-py310:
+            voting: false
 
         - cinderlib-lvm-functional
         - cinderlib-ceph-functional
-        - cinderlib-os-brick-src-tempest-lvm-lio-barbican-yoga
+        - cinderlib-os-brick-src-tempest-lvm-lio-barbican-zed
     gate:
       jobs:
         - openstack-tox-pep8
-        - cinderlib-tox-py36
+        - cinderlib-tox-py38
         - cinderlib-tox-py39
 
         - cinderlib-lvm-functional
         - cinderlib-ceph-functional
-        - cinderlib-os-brick-src-tempest-lvm-lio-barbican-yoga
+        - cinderlib-os-brick-src-tempest-lvm-lio-barbican-zed
     post:
       jobs:
         - publish-openstack-python-branch-tarball
 
 - job:
-    name: cinderlib-tox-py36
-    parent: openstack-tox-py36
+    name: cinderlib-tox-py38
+    parent: openstack-tox-py38
     required-projects:
       - name: openstack/os-brick
-        override-checkout: stable/yoga
+        override-checkout: stable/zed
       - name: openstack/cinder
-        override-checkout: stable/yoga
+        override-checkout: stable/zed
       - name: openstack/requirements
-        override-checkout: stable/yoga
+        override-checkout: stable/zed
 
 - job:
     name: cinderlib-tox-py39
     parent: openstack-tox-py39
     required-projects:
       - name: openstack/os-brick
-        override-checkout: stable/yoga
+        override-checkout: stable/zed
       - name: openstack/cinder
-        override-checkout: stable/yoga
+        override-checkout: stable/zed
       - name: openstack/requirements
-        override-checkout: stable/yoga
+        override-checkout: stable/zed
+
+- job:
+    name: cinderlib-tox-py310
+    parent: openstack-tox-py310
+    required-projects:
+      - name: openstack/os-brick
+        override-checkout: stable/zed
+      - name: openstack/cinder
+        override-checkout: stable/zed
+      - name: openstack/requirements
+        override-checkout: stable/zed
 
 - job:
     name: cinderlib-functional
     parent: openstack-tox-functional-with-sudo
     required-projects:
       - name: openstack/os-brick
-        override-checkout: stable/yoga
+        override-checkout: stable/zed
       - name: openstack/cinder
-        override-checkout: stable/yoga
+        override-checkout: stable/zed
       - name: openstack/requirements
-        override-checkout: stable/yoga
+        override-checkout: stable/zed
     pre-run: playbooks/required-projects-bindeps.yaml
     irrelevant-files:
       - ^.*\.rst$
@@ -67,7 +80,7 @@
     name: cinderlib-lvm-functional
     parent: cinderlib-functional
     pre-run: playbooks/setup-lvm.yaml
-    nodeset: centos-8-stream
+    nodeset: centos-9-stream
     vars:
       tox_environment:
         # Workaround for https://github.com/pypa/pip/issues/6264
@@ -83,7 +96,7 @@
     name: cinderlib-ceph-functional
     parent: cinderlib-functional
     pre-run: playbooks/setup-ceph.yaml
-    # TODO: move back to centos-8 as soon as Ceph packages are available
+    # TODO: move back to centos as soon as Ceph packages are available
     nodeset: ubuntu-focal
     vars:
       tox_environment:
@@ -94,7 +107,7 @@
         NOSE_WITH_XUNIT: 1
 
 - job:
-    name: cinderlib-os-brick-src-tempest-lvm-lio-barbican-yoga
+    name: cinderlib-os-brick-src-tempest-lvm-lio-barbican-zed
     parent: os-brick-src-tempest-lvm-lio-barbican
     description: |
       Use this job during the phase when cinderlib master is still
@@ -102,7 +115,7 @@
       cinderlib master and cinder master are the development branches
       for the *same* release, you should use the parent job directly
       in the check and gate, above.
-    override-checkout: stable/yoga
-    # NOTE: while the cinderlib stable/yoga branch does not exist,
+    override-checkout: stable/zed
+    # NOTE: while the cinderlib stable/zed branch does not exist,
     # zuul will fall back to using cinderlib master, which is the
     # behavior we want.
