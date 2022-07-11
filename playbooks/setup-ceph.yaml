@@ -34,7 +34,7 @@
           state: absent
 
       - name: Install ceph requirements
-        yum:
+        package:
           name:
             - ceph-common
             - python3-rados
@@ -42,7 +42,7 @@
           state: present
 
       - name: Install Docker
-        yum:
+        package:
           name: 'docker.io'
           state: present
 
