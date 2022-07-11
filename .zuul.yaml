@@ -1,9 +1,9 @@
 - project:
+    queue: integrated
     templates:
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
     check:
-      queue: integrated
       jobs:
         - openstack-tox-pep8
         - cinderlib-tox-py36
@@ -13,7 +13,6 @@
         - cinderlib-ceph-functional
         - cinderlib-os-brick-src-tempest-lvm-lio-barbican-yoga
     gate:
-      queue: integrated
       jobs:
         - openstack-tox-pep8
         - cinderlib-tox-py36
