@@ -9,8 +9,8 @@
         - cinderlib-tox-py36
         - cinderlib-tox-py37
 
-        - cinderlib-lvm-functional
-        - cinderlib-ceph-functional
+        - cinderlib-ceph-functional:
+            voting: false
         - cinder-tempest-plugin-lvm-lio-barbican
     gate:
       queue: integrated
@@ -19,8 +19,8 @@
         - cinderlib-tox-py36
         - cinderlib-tox-py37
 
-        - cinderlib-lvm-functional
-        - cinderlib-ceph-functional
+        - cinderlib-ceph-functional:
+            voting: false
         - cinder-tempest-plugin-lvm-lio-barbican
     post:
       jobs:
