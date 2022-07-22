@@ -9,9 +9,6 @@
         - cinderlib-tox-py27
         - cinderlib-tox-py36
         - cinderlib-tox-py37
-
-        - cinderlib-lvm-functional
-        - cinderlib-ceph-functional
     gate:
       queue: integrated
       jobs:
@@ -19,9 +16,6 @@
         - cinderlib-tox-py27
         - cinderlib-tox-py36
         - cinderlib-tox-py37
-
-        - cinderlib-lvm-functional
-        - cinderlib-ceph-functional
     post:
       jobs:
         - publish-openstack-python-branch-tarball
