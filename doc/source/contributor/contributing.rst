@@ -157,6 +157,10 @@ the braces (that is, ``{`` and ``}``).
   governance documentation
   <https://governance.openstack.org/tc/reference/runtimes/>`_.
 
+* If the supported python runtimes have changed from the previous release,
+  you may also need to update the ``python_requires`` and the "Programming
+  Language" classifiers in cinderlib's ``setup.cfg`` file.
+
 [testenv:docs]install_command
 `````````````````````````````
 
@@ -198,6 +202,93 @@ A few things to note about the cinderlib ``.zuul.yaml`` file.
   master patch, Zuul figures that all components are supposed to be installed
   from their master branch -- including openstack requirements, which specifies
   the upper-constraints for the release.
+
+* The QA testing templates are defined here:
+  https://opendev.org/openstack/openstack-zuul-jobs/src/branch/master/zuul.d/project-templates.yaml
+
+  The ``openstack-zuul-jobs`` repo is not branched, so that file will contain
+  the testing templates for all stable branches for which OpenStack CI is
+  still supported.
+
+  After the cinderlib 'n' release, you will open cinderlib for 'n+1'
+  development.  For example, after the yoga release, you will open cinderlib
+  for zed development.  For the reasons outlined above, we won't use the
+  zed template directly, but you need to look at it to see what jobs it
+  includes, and make sure that cinderlib's ``.zuul.yaml`` uses equivalent jobs
+  in each of the check, gate, and post pipelines.
+
+  * What's meant by "equivalent jobs" is best explained by an example.
+    The ``openstack-python3-zed-jobs`` template contains (among other things)
+    an ``openstack-tox-py39`` job.  We don't use that job directly, but
+    instead have an ``cinderlib-tox-py39`` job defined in the cinderlib
+    ``.zuul.yaml`` that has ``openstack-tox-py39`` as a parent.  (If the
+    equivalent job you need doesn't exist, you must create it, using the
+    other jobs as examples.)
+
+    We need these cinderlib-specific jobs for running unit tests in the
+    CI because the tests run using the development versions of cinder and
+    os-brick, not released versions, so we need to tell Zuul that it needs
+    to have the code repositories for cinder and os-brick available.  (We
+    also tell it to have the requirements repo available; it will be needed
+    during cinderlib's cycle-trailing development phase.)
+
+With that background, here are the ``.zuul.yaml`` maintenance tasks.
+
+* When the coordinated release for cycle 'n' has occurred, the jobs in
+  cinderlib's ``.zuul.yaml`` in master must be updated to use the 'n'
+  stable branch for each of its sibling projects.  Letting 'n' be the
+  Yoga relase, what this means is that the jobs will change from looking
+  like this:
+
+  .. code-block::
+
+     - job:
+         name: cinderlib-tox-py39
+         parent: openstack-tox-py39
+         required-projects:
+           - name: openstack/os-brick
+           - name: openstack/cinder
+           - name: openstack/requirements
+
+  to looking like this:
+
+  .. code-block::
+
+     - job:
+         name: cinderlib-tox-py39
+         parent: openstack-tox-py39
+         required-projects:
+           - name: openstack/os-brick
+             override-checkout: stable/yoga
+           - name: openstack/cinder
+             override-checkout: stable/yoga
+           - name: openstack/requirements
+             override-checkout: stable/yoga
+
+  Additionally, instead of running the
+  ``os-brick-src-tempest-lvm-lio-barbican`` job (which is defined in
+  the os-brick repository), we will need to run a special version of
+  that job will be defined in cinderlib's ``.zuul.yaml``.  This job
+  should already be defined in the file, and will be named
+  ``cinderlib-os-brick-src-tempest-lvm-lio-barbican-{release}``.
+  Verify that the job has the correct branch specified for
+  ``override-checkout``, and then configure the ``check`` and ``gate``
+  sections to run this job.
+
+* After the 'n' release of cinderlib, when cinderlib master has become
+  the 'n+1' development branch and is once again in sync with the master
+  branches of cinder and os-brick:
+
+  * remove the ``override-checkout`` specification from the
+    ``cinderlib-tox-*`` job definitions
+  * take a look at the 'n+1' release testing template (as discussed
+    above) and make sure that cinderlib is running the correct jobs
+    for the cycle
+  * run ``os-brick-src-tempest-lvm-lio-barbican`` in the check and
+    gate
+  * update the definition for the
+    'cinderlib-os-brick-src-tempest-lvm-lio-barbican-{release}'
+    job so that it will be ready when you need it later in the cycle.
 
 cinderlib requirements.txt maintenance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
