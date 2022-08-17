@@ -44,7 +44,7 @@
       - openstack/os-brick
       - openstack/cinder
     pre-run: playbooks/setup-lvm.yaml
-    nodeset: centos-8
+    nodeset: centos-8-stream
     vars:
       tox_environment:
         # Workaround for https://github.com/pypa/pip/issues/6264
