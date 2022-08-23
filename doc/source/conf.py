@@ -81,7 +81,7 @@ master_doc = 'index'
 exclude_trees = []
 
 # General information about the project.
-copyright = u"2017, Cinder Developers"
+copyright = "2017, Cinder Developers"
 
 # openstackdocstheme options
 openstackdocs_repo_name = 'openstack/cinderlib'
