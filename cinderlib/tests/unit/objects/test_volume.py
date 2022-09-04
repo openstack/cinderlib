@@ -73,7 +73,7 @@ class TestVolume(base.BaseTest):
 
         result = vol.snapshots
 
-        mock_get_snaps.called_once_with(vol.id)
+        mock_get_snaps.assert_called_once_with(volume_id=vol.id)
         self.assertEqual(snaps, result)
         self.assertEqual(snaps, vol._snapshots)
         self.assertEqual(1, len(vol._ovo.snapshots))
@@ -100,7 +100,7 @@ class TestVolume(base.BaseTest):
 
         result = vol.connections
 
-        mock_get_conns.called_once_with(volume_id=vol.id)
+        mock_get_conns.assert_called_once_with(volume_id=vol.id)
         self.assertEqual(conns, result)
         self.assertEqual(conns, vol._connections)
         self.assertEqual(1, len(vol._ovo.volume_attachment))
@@ -474,7 +474,7 @@ class TestVolume(base.BaseTest):
 
         mock_remove_export.assert_called_once_with()
         for c in connections:
-            c.detach.asssert_called_once_with()
+            c.detach.assert_called_once_with()
 
     def test__snapshot_removed_not_loaded(self):
         vol = objects.Volume(self.backend,
