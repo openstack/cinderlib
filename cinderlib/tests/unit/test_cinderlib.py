@@ -398,7 +398,7 @@ class TestCinderlib(base.BaseTest):
     def test_stats_single(self):
         stat_value = {'driver_version': 'v1', 'key': 'value'}
         expect = {'driver_version': 'v1', 'key': 'value',
-                  'pools': [{'key': 'value', 'pool_name': 'fake_backend'}]}
+                  'pools': [{'key': 'value', 'pool_name': self.backend_name}]}
         with mock.patch.object(self.backend.driver, 'get_volume_stats',
                                return_value=stat_value) as mock_stat:
             res = self.backend.stats(mock.sentinel.refresh)
