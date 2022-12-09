@@ -180,7 +180,7 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         return result
 
     def _get_kv(self, key=None, session=None):
-        session = session or sqla_api.get_session()
+        session = objects.CONTEXT.session
         query = session.query(KeyValue)
         if key is not None:
             query = query.filter_by(key=key)
@@ -301,12 +301,11 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         super(DBPersistence, self).set_connection(connection)
 
     def set_key_value(self, key_value):
-        session = sqla_api.get_session()
-        with session.begin():
-            kv = self._get_kv(key_value.key, session)
-            kv = kv[0] if kv else KeyValue(key=key_value.key)
-            kv.value = key_value.value
-            session.add(kv)
+        session = objects.CONTEXT.session
+        kv = self._get_kv(key_value.key, session)
+        kv = kv[0] if kv else KeyValue(key=key_value.key)
+        kv.value = key_value.value
+        session.add(kv)
 
     def delete_volume(self, volume):
         delete_type = (volume.volume_type_id != self.DEFAULT_TYPE.id
@@ -372,7 +371,8 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         super(DBPersistence, self).delete_connection(connection)
 
     def delete_key_value(self, key_value):
-        query = sqla_api.get_session().query(KeyValue)
+        session = objects.CONTEXT.session
+        query = session.query(KeyValue)
         query.filter_by(key=key_value.key).delete()
 
 

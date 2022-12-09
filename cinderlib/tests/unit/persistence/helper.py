@@ -69,7 +69,12 @@ class TestHelper(base.BaseTest):
             d.setdefault('backend_or_vol', self.backend)
             vol = cinderlib.Volume(**d)
             vols.append(vol)
-            self.persistence.set_volume(vol)
+            # db_instance is a property of DBMS plugin
+            if hasattr(self.persistence, 'db_instance'):
+                with api.main_context_manager.writer.using(self.context):
+                    self.persistence.set_volume(vol)
+            else:
+                self.persistence.set_volume(vol)
         if sort:
             return self.sorted(vols)
         return vols
@@ -98,7 +103,12 @@ class TestHelper(base.BaseTest):
         for i in range(2):
             kv = cinderlib.KeyValue(key='key%i' % i, value='value%i' % i)
             kvs.append(kv)
-            self.persistence.set_key_value(kv)
+            # db_instance is a property of DBMS plugin
+            if hasattr(self.persistence, 'db_instance'):
+                with api.main_context_manager.writer.using(self.context):
+                    self.persistence.set_key_value(kv)
+            else:
+                self.persistence.set_key_value(kv)
         return kvs
 
     def _convert_to_dict(self, obj):
