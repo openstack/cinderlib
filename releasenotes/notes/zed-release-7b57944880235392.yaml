@@ -1,0 +1,7 @@
+---
+prelude: >
+    Welcome to the Zed release of cinderlib.
+upgrade:
+  - |
+    This release drops support for Python 3.6.
+
