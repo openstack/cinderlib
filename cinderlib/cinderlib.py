@@ -414,7 +414,7 @@ class Backend(object):
             # Can only use importlib.resources on 3.10 because it was added to
             # 3.7, but files to 3.9 and namespace packages only to 3.10
             import sys
-            if sys.version_info[:2] > (3, 10):
+            if sys.version_info[:2] >= (3, 10):
                 from importlib.resources import files
             else:
                 from importlib_resources import files
