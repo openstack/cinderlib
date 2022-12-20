@@ -1,6 +1,6 @@
-# restrict cinder to the zed release only
-cinder>=21.0.0.0,<22.0.0  # Apache-2.0
-# brick upper bound is controlled by zed/upper-constraints
+# restrict cinder to zed or later
+cinder>=21.0.0.0  # Apache-2.0
+# brick upper bound is controlled by upper-constraints
 os-brick>=6.1.0  # Apache-2.0
 
 importlib_metadata>=1.7.0 # Apache-2.0
