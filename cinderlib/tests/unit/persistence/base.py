@@ -27,8 +27,6 @@ class BasePersistenceTest(helper.TestHelper):
 
     def setUp(self):
         super(BasePersistenceTest, self).setUp()
-        self.backend_name = 'fake_backend'
-        self.backend = utils.FakeBackend(volume_backend_name=self.backend_name)
 
     def assertListEqualObj(self, expected, actual):
         exp = [self._convert_to_dict(e) for e in expected]

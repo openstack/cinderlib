@@ -31,7 +31,7 @@ class BaseTest(unittest.TestCase):
         if not self.PERSISTENCE_CFG:
             cfg = {'storage': utils.get_mock_persistence()}
             cinderlib.Backend.set_persistence(cfg)
-        self.backend_name = 'fake_backend_%s' % id(self)
+        self.backend_name = 'fake_backend'
         self.backend = utils.FakeBackend(volume_backend_name=self.backend_name)
         self.persistence = self.backend.persistence
         cinderlib.Backend._volumes_inflight = {}

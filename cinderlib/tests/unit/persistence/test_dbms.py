@@ -32,15 +32,13 @@ class TestDBPersistence(base.BasePersistenceTest):
                        'connection': CONNECTION}
 
     def tearDown(self):
+        super(TestDBPersistence, self).tearDown()
         with sqla_api.main_context_manager.writer.using(self.context):
             sqla_api.model_query(self.context, sqla_models.Snapshot).delete()
             sqla_api.model_query(self.context,
                                  sqla_models.VolumeAttachment).delete()
             sqla_api.model_query(self.context, sqla_models.Volume).delete()
             self.context.session.query(dbms.KeyValue).delete()
-        # FIXME: should this be inside or outside the context manager?
-        # Doesn't seem to matter for our current tests.
-        super(TestDBPersistence, self).tearDown()
 
     def test_db(self):
         self.assertIsInstance(self.persistence.db,
@@ -106,8 +104,7 @@ class TestDBPersistence(base.BasePersistenceTest):
         self.assertListEqual([], res)
 
         expected = [dbms.KeyValue(key='key', value='value')]
-        with sqla_api.main_context_manager.writer.using(self.context):
-            self.persistence.set_key_value(expected[0])
+        self.persistence.set_key_value(expected[0])
 
         with sqla_api.main_context_manager.reader.using(self.context):
             actual = self.context.session.query(dbms.KeyValue).all()
@@ -128,119 +125,20 @@ class TestDBPersistence(base.BasePersistenceTest):
         self.assertEqual('__DEFAULT__', self.persistence.DEFAULT_TYPE.name)
 
     def test_delete_volume_with_metadata(self):
-        # FIXME: figure out why this sometimes (often enough to skip)
-        # raises sqlite3.OperationalError: database is locked
-        if not isinstance(self, TestMemoryDBPersistence):
-            self.skipTest("FIXME!")
-
         vols = self.create_volumes([{'size': i, 'name': 'disk%s' % i,
                                      'metadata': {'k': 'v', 'k2': 'v2'},
                                      'admin_metadata': {'k': '1'}}
                                     for i in range(1, 3)])
-        with sqla_api.main_context_manager.writer.using(self.context):
-            self.persistence.delete_volume(vols[0])
-        with sqla_api.main_context_manager.reader.using(self.context):
-            res = self.persistence.get_volumes()
+        self.persistence.delete_volume(vols[0])
+        res = self.persistence.get_volumes()
         self.assertListEqualObj([vols[1]], res)
 
         for model in (dbms.models.VolumeMetadata,
                       dbms.models.VolumeAdminMetadata):
             with sqla_api.main_context_manager.reader.using(self.context):
                 query = dbms.sqla_api.model_query(self.context, model)
-            res = query.filter_by(volume_id=vols[0].id).all()
+                res = query.filter_by(volume_id=vols[0].id).all()
             self.assertEqual([], res)
-
-    def test_delete_volume(self):
-        vols = self.create_n_volumes(2)
-        with sqla_api.main_context_manager.writer.using(self.context):
-            self.persistence.delete_volume(vols[0])
-        res = self.persistence.get_volumes()
-        self.assertListEqualObj([vols[1]], res)
-
-    def test_delete_volume_not_found(self):
-        vols = self.create_n_volumes(2)
-        fake_vol = cinderlib.Volume(backend_or_vol=self.backend)
-        with sqla_api.main_context_manager.writer.using(self.context):
-            self.persistence.delete_volume(fake_vol)
-        res = self.persistence.get_volumes()
-        self.assertListEqualObj(vols, self.sorted(res))
-
-    def test_get_snapshots_by_multiple_not_found(self):
-        with sqla_api.main_context_manager.writer.using(self.context):
-            snaps = self.create_snapshots()
-        with sqla_api.main_context_manager.reader.using(self.context):
-            res = self.persistence.get_snapshots(snapshot_name=snaps[1].name,
-                                                 volume_id=snaps[0].volume.id)
-        self.assertListEqualObj([], res)
-
-    def test_delete_snapshot(self):
-        with sqla_api.main_context_manager.writer.using(self.context):
-            snaps = self.create_snapshots()
-            self.persistence.delete_snapshot(snaps[0])
-        with sqla_api.main_context_manager.reader.using(self.context):
-            res = self.persistence.get_snapshots()
-        self.assertListEqualObj([snaps[1]], res)
-
-    def test_delete_snapshot_not_found(self):
-        with sqla_api.main_context_manager.writer.using(self.context):
-            snaps = self.create_snapshots()
-        fake_snap = cinderlib.Snapshot(snaps[0].volume)
-        with sqla_api.main_context_manager.writer.using(self.context):
-            self.persistence.delete_snapshot(fake_snap)
-        with sqla_api.main_context_manager.reader.using(self.context):
-            res = self.persistence.get_snapshots()
-        self.assertListEqualObj(snaps, self.sorted(res))
-
-    def test_delete_connection(self):
-        conns = self.create_connections()
-        with sqla_api.main_context_manager.writer.using(self.context):
-            self.persistence.delete_connection(conns[1])
-        with sqla_api.main_context_manager.reader.using(self.context):
-            res = self.persistence.get_connections()
-        self.assertListEqualObj([conns[0]], res)
-
-    def test_delete_connection_not_found(self):
-        conns = self.create_connections()
-        fake_conn = cinderlib.Connection(
-            self.backend,
-            volume=conns[0].volume,
-            connection_info={'conn': {'data': {}}})
-        with sqla_api.main_context_manager.writer.using(self.context):
-            self.persistence.delete_connection(fake_conn)
-        with sqla_api.main_context_manager.reader.using(self.context):
-            res = self.persistence.get_connections()
-        self.assertListEqualObj(conns, self.sorted(res))
-
-    def test_get_key_values_by_key(self):
-        with sqla_api.main_context_manager.writer.using(self.context):
-            kvs = self.create_key_values()
-        with sqla_api.main_context_manager.reader.using(self.context):
-            res = self.persistence.get_key_values(key=kvs[1].key)
-        self.assertListEqual([kvs[1]], res)
-
-    def test_get_key_values_by_key_not_found(self):
-        with sqla_api.main_context_manager.writer.using(self.context):
-            self.create_key_values()
-        with sqla_api.main_context_manager.reader.using(self.context):
-            res = self.persistence.get_key_values(key='fake-uuid')
-        self.assertListEqual([], res)
-
-    def test_delete_key_value(self):
-        kvs = self.create_key_values()
-        with sqla_api.main_context_manager.writer.using(self.context):
-            self.persistence.delete_key_value(kvs[1])
-        with sqla_api.main_context_manager.reader.using(self.context):
-            res = self.persistence.get_key_values()
-        self.assertListEqual([kvs[0]], res)
-
-    def test_delete_key_not_found(self):
-        kvs = self.create_key_values()
-        fake_key = cinderlib.KeyValue('fake-key')
-        with sqla_api.main_context_manager.writer.using(self.context):
-            self.persistence.delete_key_value(fake_key)
-        with sqla_api.main_context_manager.reader.using(self.context):
-            res = self.persistence.get_key_values()
-        self.assertListEqual(kvs, self.sorted(res, 'key'))
 
 
 class TestDBPersistenceNewerSchema(base.helper.TestHelper):

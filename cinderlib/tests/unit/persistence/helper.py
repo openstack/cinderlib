@@ -45,7 +45,15 @@ class TestHelper(base.BaseTest):
     def tearDownClass(cls):
         volume_cmd.session.IMPL = cls.original_impl
         cinderlib.Backend.global_initialization = False
-        api.main_context_manager = api.enginefacade.transaction_context()
+
+        # Cannot just replace the context manager itself because it is already
+        # decorating cinder DB methods and those would continue accessing the
+        # old database, so we replace the existing CM'sinternal transaction
+        # factory, efectively "reseting" the context manager.
+        cm = api.main_context_manager
+        if cm.is_started:
+            cm._root_factory = api.enginefacade._TransactionFactory()
+
         for ovo_name, methods in cls.ovo_methods.items():
             ovo_cls = getattr(objects, ovo_name)
             for method_name, method in methods.items():
@@ -69,12 +77,7 @@ class TestHelper(base.BaseTest):
             d.setdefault('backend_or_vol', self.backend)
             vol = cinderlib.Volume(**d)
             vols.append(vol)
-            # db_instance is a property of DBMS plugin
-            if hasattr(self.persistence, 'db_instance'):
-                with api.main_context_manager.writer.using(self.context):
-                    self.persistence.set_volume(vol)
-            else:
-                self.persistence.set_volume(vol)
+            self.persistence.set_volume(vol)
         if sort:
             return self.sorted(vols)
         return vols
@@ -103,12 +106,7 @@ class TestHelper(base.BaseTest):
         for i in range(2):
             kv = cinderlib.KeyValue(key='key%i' % i, value='value%i' % i)
             kvs.append(kv)
-            # db_instance is a property of DBMS plugin
-            if hasattr(self.persistence, 'db_instance'):
-                with api.main_context_manager.writer.using(self.context):
-                    self.persistence.set_key_value(kv)
-            else:
-                self.persistence.set_key_value(kv)
+            self.persistence.set_key_value(kv)
         return kvs
 
     def _convert_to_dict(self, obj):

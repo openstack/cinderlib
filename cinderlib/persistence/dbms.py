@@ -34,6 +34,31 @@ from cinderlib.persistence import base as persistence_base
 LOG = log.getLogger(__name__)
 
 
+def db_writer(func):
+    """Decorator to start a DB writing transaction.
+
+    With the new Oslo DB Transaction Sessions everything needs to use the
+    sessions of the enginefacade using the function decorator or the context
+    manager approach: https://docs.openstack.org/oslo.db/ocata/usage.html
+
+    This plugin cannot use the decorator form because its fuctions don't
+    receive a Context objects that the decorator can find and use, so we use
+    this decorator instead.
+
+    Cinder DB API methods already have a decorator, so methods calling them
+    don't require this decorator, but methods that directly call the DB using
+    sqlalchemy or using the model_query method do.
+
+    Using this decorator at this level also allows us to enclose everything in
+    a single transaction, and it doesn't have any problems with the existing
+    Cinder decorators.
+    """
+    def wrapper(*args, **kwargs):
+        with sqla_api.main_context_manager.writer.using(objects.CONTEXT):
+            return func(*args, **kwargs)
+    return wrapper
+
+
 class KeyValue(models.BASE, oslo_db_models.ModelBase, objects.KeyValue):
     __tablename__ = 'cinderlib_persistence_key_value'
     key = sa.Column(sa.String(255), primary_key=True)
@@ -179,8 +204,7 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
                   for ovo in ovos.objects]
         return result
 
-    def _get_kv(self, key=None, session=None):
-        session = objects.CONTEXT.session
+    def _get_kv(self, session, key=None):
         query = session.query(KeyValue)
         if key is not None:
             query = query.filter_by(key=key)
@@ -191,8 +215,10 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
         return [objects.KeyValue(r.key, r.value) for r in res]
 
     def get_key_values(self, key=None):
-        return self._get_kv(key)
+        with sqla_api.main_context_manager.reader.using(objects.CONTEXT) as s:
+            return self._get_kv(s, key)
 
+    @db_writer
     def set_volume(self, volume):
         changed = self.get_changed_fields(volume)
         if not changed:
@@ -255,6 +281,7 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
             self.db.volume_update(objects.CONTEXT, volume.id, changed)
         super(DBPersistence, self).set_volume(volume)
 
+    @db_writer
     def set_snapshot(self, snapshot):
         changed = self.get_changed_fields(snapshot)
         if not changed:
@@ -274,6 +301,7 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
             self.db.snapshot_update(objects.CONTEXT, snapshot.id, changed)
         super(DBPersistence, self).set_snapshot(snapshot)
 
+    @db_writer
     def set_connection(self, connection):
         changed = self.get_changed_fields(connection)
         if not changed:
@@ -300,13 +328,15 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
                                              changed)
         super(DBPersistence, self).set_connection(connection)
 
+    @db_writer
     def set_key_value(self, key_value):
         session = objects.CONTEXT.session
-        kv = self._get_kv(key_value.key, session)
+        kv = self._get_kv(session, key_value.key)
         kv = kv[0] if kv else KeyValue(key=key_value.key)
         kv.value = key_value.value
         session.add(kv)
 
+    @db_writer
     def delete_volume(self, volume):
         delete_type = (volume.volume_type_id != self.DEFAULT_TYPE.id
                        and volume.volume_type_id)
@@ -349,6 +379,7 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
                     )).delete()
         super(DBPersistence, self).delete_volume(volume)
 
+    @db_writer
     def delete_snapshot(self, snapshot):
         if self.soft_deletes:
             LOG.debug('soft deleting snapshot %s', snapshot.id)
@@ -359,6 +390,7 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
             query.filter_by(id=snapshot.id).delete()
         super(DBPersistence, self).delete_snapshot(snapshot)
 
+    @db_writer
     def delete_connection(self, connection):
         if self.soft_deletes:
             LOG.debug('soft deleting connection %s', connection.id)
@@ -370,6 +402,7 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
             query.filter_by(id=connection.id).delete()
         super(DBPersistence, self).delete_connection(connection)
 
+    @db_writer
     def delete_key_value(self, key_value):
         session = objects.CONTEXT.session
         query = session.query(KeyValue)
