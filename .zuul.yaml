@@ -1,4 +1,6 @@
 - project:
+    vars:
+      ensure_tox_version: '<4'
     queue: integrated
     templates:
       - publish-openstack-docs-pti
