@@ -116,8 +116,8 @@ the release that this is the development branch for.
      # latest cinder/brick code instead of released code.
      # NOTE: Functional tests may fail if host is missing bindeps from deps projects
      deps= -r{toxinidir}/test-requirements.txt
-           git+https://opendev.org/openstack/os-brick#egg=os-brick
-           git+https://opendev.org/openstack/cinder#egg=cinder
+           git+https://opendev.org/openstack/os-brick
+           git+https://opendev.org/openstack/cinder
 
 * When the coordinated release for cycle 'n' has occurred, cinderlib's
   ``tox.ini`` in master must be modified so that cinderlib is being tested
@@ -127,8 +127,8 @@ the release that this is the development branch for.
   .. code-block::
 
      deps = -r{toxinidir}/test-requirements.txt
-            git+https://opendev.org/openstack/os-brick@stable/yoga#egg=os-brick
-            git+https://opendev.org/openstack/cinder@stable/yoga#egg=cinder
+            git+https://opendev.org/openstack/os-brick@stable/yoga
+            git+https://opendev.org/openstack/cinder@stable/yoga
 
 * After the 'n' release of cinderlib occurs (and the stable/n branch is cut),
   all of cinder, os-brick, and cinderlib master branches are all 'n+1' cycle
