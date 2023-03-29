@@ -15,7 +15,9 @@
 
         - cinderlib-lvm-functional
         - cinderlib-ceph-functional
-        - os-brick-src-tempest-lvm-lio-barbican
+        # NOTE: when cinderlib opens for 2023.2 development,
+        # use the parent job instead:
+        - cinderlib-os-brick-src-tempest-lvm-lio-barbican-2023.1
     gate:
       jobs:
         - openstack-tox-pep8
@@ -24,7 +26,9 @@
 
         - cinderlib-lvm-functional
         - cinderlib-ceph-functional
-        - os-brick-src-tempest-lvm-lio-barbican
+        # NOTE: when cinderlib opens for 2023.2 development,
+        # use the parent job instead:
+        - cinderlib-os-brick-src-tempest-lvm-lio-barbican-2023.1
     post:
       jobs:
         - publish-openstack-python-branch-tarball
@@ -34,24 +38,33 @@
     parent: openstack-tox-py38
     required-projects:
       - name: openstack/os-brick
+        override-checkout: stable/2023.1
       - name: openstack/cinder
+        override-checkout: stable/2023.1
       - name: openstack/requirements
+        override-checkout: stable/2023.1
 
 - job:
     name: cinderlib-tox-py310
     parent: openstack-tox-py310
     required-projects:
       - name: openstack/os-brick
+        override-checkout: stable/2023.1
       - name: openstack/cinder
+        override-checkout: stable/2023.1
       - name: openstack/requirements
+        override-checkout: stable/2023.1
 
 - job:
     name: cinderlib-tox-py311
     parent: openstack-tox
     required-projects:
       - name: openstack/os-brick
+        override-checkout: stable/2023.1
       - name: openstack/cinder
+        override-checkout: stable/2023.1
       - name: openstack/requirements
+        override-checkout: stable/2023.1
     # TODO: use the openstack-tox-py311 job as the parent
     # when it becomes available in openstack/openstack-zuul-jobs
     # and delete the following stuff
@@ -66,8 +79,11 @@
     parent: openstack-tox-functional-with-sudo
     required-projects:
       - name: openstack/os-brick
+        override-checkout: stable/2023.1
       - name: openstack/cinder
+        override-checkout: stable/2023.1
       - name: openstack/requirements
+        override-checkout: stable/2023.1
     pre-run: playbooks/required-projects-bindeps.yaml
     irrelevant-files:
       - ^.*\.rst$
