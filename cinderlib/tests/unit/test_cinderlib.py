@@ -286,7 +286,7 @@ class TestCinderlib(base.BaseTest):
         cinder_cfg = {
             'volume_driver': 'cinder.volume.drivers.lvm.LVMVolumeDriver',
             'volume_group': 'lvm-volumes',
-            'iscsi_secondary_ip_addresses': ['w.x.y.z', 'a.b.c.d'],
+            'target_secondary_ip_addresses': ['w.x.y.z', 'a.b.c.d'],
             'target_port': 12345,
         }
         expected_cfg = cinder_cfg.copy()
@@ -297,7 +297,7 @@ class TestCinderlib(base.BaseTest):
         self.assertEqual('cinder-volumes',
                          cfg.CONF.backend_defaults.volume_group)
         self.assertEqual(
-            [], cfg.CONF.backend_defaults.iscsi_secondary_ip_addresses)
+            [], cfg.CONF.backend_defaults.target_secondary_ip_addresses)
         self.assertEqual(3260, cfg.CONF.backend_defaults.target_port)
         self.assertEqual(expected_cfg, cinder_cfg)
 
