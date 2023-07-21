@@ -9,26 +9,31 @@
       jobs:
         - openstack-tox-pep8
         - cinderlib-tox-py38
+        - cinderlib-tox-py39
         - cinderlib-tox-py310
         - cinderlib-tox-py311:
             voting: false
 
         - cinderlib-lvm-functional
         - cinderlib-ceph-functional
-        # NOTE: when cinderlib opens for 2023.2 development,
-        # use the parent job instead:
-        - cinderlib-os-brick-src-tempest-lvm-lio-barbican-2023.1
+        # NOTE: when the *cinder* stable/2023.2 branch has been cut, replace
+        - os-brick-src-tempest-lvm-lio-barbican
+        # with
+        # - cinderlib-os-brick-src-tempest-lvm-lio-barbican-2023.2
+
     gate:
       jobs:
         - openstack-tox-pep8
         - cinderlib-tox-py38
+        - cinderlib-tox-py39
         - cinderlib-tox-py310
 
         - cinderlib-lvm-functional
         - cinderlib-ceph-functional
-        # NOTE: when cinderlib opens for 2023.2 development,
-        # use the parent job instead:
-        - cinderlib-os-brick-src-tempest-lvm-lio-barbican-2023.1
+        # NOTE: when the *cinder* stable/2023.2 branch has been cut, replace
+        - os-brick-src-tempest-lvm-lio-barbican
+        # with
+        # - cinderlib-os-brick-src-tempest-lvm-lio-barbican-2023.2
     post:
       jobs:
         - publish-openstack-python-branch-tarball
@@ -38,33 +43,32 @@
     parent: openstack-tox-py38
     required-projects:
       - name: openstack/os-brick
-        override-checkout: stable/2023.1
       - name: openstack/cinder
-        override-checkout: stable/2023.1
       - name: openstack/requirements
-        override-checkout: stable/2023.1
+
+- job:
+    name: cinderlib-tox-py39
+    parent: openstack-tox-py39
+    required-projects:
+      - name: openstack/os-brick
+      - name: openstack/cinder
+      - name: openstack/requirements
 
 - job:
     name: cinderlib-tox-py310
     parent: openstack-tox-py310
     required-projects:
       - name: openstack/os-brick
-        override-checkout: stable/2023.1
       - name: openstack/cinder
-        override-checkout: stable/2023.1
       - name: openstack/requirements
-        override-checkout: stable/2023.1
 
 - job:
     name: cinderlib-tox-py311
     parent: openstack-tox
     required-projects:
       - name: openstack/os-brick
-        override-checkout: stable/2023.1
       - name: openstack/cinder
-        override-checkout: stable/2023.1
       - name: openstack/requirements
-        override-checkout: stable/2023.1
     # TODO: use the openstack-tox-py311 job as the parent
     # when it becomes available in openstack/openstack-zuul-jobs
     # and delete the following stuff
@@ -121,7 +125,7 @@
         NOSE_WITH_XUNIT: 1
 
 - job:
-    name: cinderlib-os-brick-src-tempest-lvm-lio-barbican-2023.1
+    name: cinderlib-os-brick-src-tempest-lvm-lio-barbican-2023.2
     parent: os-brick-src-tempest-lvm-lio-barbican
     description: |
       Use this job during the phase when cinderlib master is still
@@ -129,7 +133,7 @@
       cinderlib master and cinder master are the development branches
       for the *same* release, you should use the parent job directly
       in the check and gate, above.
-    override-checkout: stable/2023.1
-    # NOTE: while the cinderlib stable/2023.1 branch does not exist,
+    override-checkout: stable/2023.2
+    # NOTE: while the cinderlib stable/2023.2 branch does not exist,
     # zuul will fall back to using cinderlib master, which is the
     # behavior we want.
