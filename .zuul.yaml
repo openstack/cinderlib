@@ -11,6 +11,7 @@
         - cinderlib-tox-py38
         - cinderlib-tox-py39
         - cinderlib-tox-py310
+        # TODO: make this voting when cinderlib opens for 2024.1 development
         - cinderlib-tox-py311:
             voting: false
 
@@ -64,19 +65,11 @@
 
 - job:
     name: cinderlib-tox-py311
-    parent: openstack-tox
+    parent: openstack-tox-py311
     required-projects:
       - name: openstack/os-brick
       - name: openstack/cinder
       - name: openstack/requirements
-    # TODO: use the openstack-tox-py311 job as the parent
-    # when it becomes available in openstack/openstack-zuul-jobs
-    # and delete the following stuff
-    nodeset: ubuntu-jammy
-    timeout: 2400
-    vars:
-      tox_envlist: py311
-      python_version: '3.11'
 
 - job:
     name: cinderlib-functional
