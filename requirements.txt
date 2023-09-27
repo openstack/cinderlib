@@ -5,3 +5,7 @@ os-brick>=6.3.0  # Apache-2.0
 
 importlib_metadata>=1.7.0 # Apache-2.0
 importlib_resources>=3.2.1;python_version<'3.10' # Apache-2.0
+
+# TODO: cinder removed this as a dependency in 2023.2 (Bobcat)
+# but we need to include it here until cinderlib catches up
+sqlalchemy-migrate>=0.13.0 # Apache-2.0
