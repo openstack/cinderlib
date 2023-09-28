@@ -16,6 +16,8 @@
 import tempfile
 from unittest import mock
 
+import alembic.script.revision
+import alembic.util.exc
 from cinder.db.sqlalchemy import api as sqla_api
 from cinder.db.sqlalchemy import models as sqla_models
 from cinder import objects as cinder_ovos
@@ -152,10 +154,10 @@ class TestDBPersistenceNewerSchema(base.helper.TestHelper):
         pass
 
     def _raise_exc(self):
-        inner_exc = dbms.migrate.exceptions.VersionNotFoundError()
-        exc = dbms.exception.DBMigrationError(inner_exc)
+        inner_exc = alembic.script.revision.ResolutionError('foo', 'rev')
+        outer_exc = alembic.util.exc.CommandError('bar')
         self.original_db_sync()
-        raise(exc)
+        raise outer_exc from inner_exc
 
     def test_newer_db_schema(self):
         self.original_db_sync = dbms.migration.db_sync

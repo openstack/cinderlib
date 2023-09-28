@@ -15,13 +15,14 @@
 
 import logging
 
+import alembic.script.revision
+import alembic.util.exc
 from cinder.db import api as db_api
 from cinder.db import migration
 from cinder.db.sqlalchemy import api as sqla_api
 from cinder.db.sqlalchemy import models
 from cinder import exception as cinder_exception
 from cinder import objects as cinder_objs
-import migrate
 from oslo_config import cfg
 from oslo_db import exception
 from oslo_db.sqlalchemy import models as oslo_db_models
@@ -79,9 +80,9 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
                               sqlite_synchronous,
                               'database')
 
-        # Suppress logging for migration
-        migrate_logger = logging.getLogger('migrate')
-        migrate_logger.setLevel(logging.WARNING)
+        # Suppress logging for alembic
+        alembic_logger = logging.getLogger('alembic.runtime.migration')
+        alembic_logger.setLevel(logging.WARNING)
 
         self._clear_facade()
         self.db_instance = db_api.oslo_db_api.DBAPI.from_config(
@@ -99,13 +100,15 @@ class DBPersistence(persistence_base.PersistenceDriverBase):
 
         try:
             migration.db_sync()
-        except exception.DBMigrationError as exc:
+        except alembic.util.exc.CommandError as exc:
             # We can be running 2 Cinder versions at the same time on the same
             # DB while we upgrade, so we must ignore the fact that the DB is
             # now on a newer version.
-            if not isinstance(getattr(exc, 'inner_exception', None),
-                              migrate.exceptions.VersionNotFoundError):
+            if not isinstance(
+                exc.__cause__, alembic.script.revision.ResolutionError,
+            ):
                 raise
+
         self._create_key_value_table()
 
         # NOTE : At this point, the persistence isn't ready so we need to use
