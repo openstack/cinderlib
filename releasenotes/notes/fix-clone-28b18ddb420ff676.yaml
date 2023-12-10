@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Bug #1849339: Cloning doesn't store the source volume id.
-  - |
-    Bug #1849828: In-use volume clone status is in-use instead of available.

@@ -1,4 +1,0 @@
-- hosts: all
-  become: True
-  role:
-    - run-cinderlib-tests

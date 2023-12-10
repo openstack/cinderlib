@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Support references in driver configuration values passed to
-    ``cinderlib.Backend``, such as  ``target_ip_address='$my_ip'``.

@@ -1,6 +1,0 @@
-cinderlib_base_dir: "{{ devstack_base_dir | default('/opt/stack') }}/cinderlib"
-cinderlib_config_file: '/etc/cinder/cinder.conf'
-cinderlib_envlist: functional
-cinderlib_pool_name: ''
-cinderlib_logs: true
-cinderlib_debug: true
