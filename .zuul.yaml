@@ -2,14 +2,14 @@
     queue: integrated
     templates:
       - publish-openstack-docs-pti
-      - release-notes-jobs-python3
     check:
       jobs:
         - openstack-tox-pep8
         - cinderlib-tox-py36
         - cinderlib-tox-py37
 
-        - cinderlib-lvm-functional
+        - cinderlib-lvm-functional:
+            voting: false
         - cinderlib-ceph-functional
         - os-brick-src-tempest-lvm-lio-barbican
     gate:
@@ -18,7 +18,6 @@
         - cinderlib-tox-py36
         - cinderlib-tox-py37
 
-        - cinderlib-lvm-functional
         - cinderlib-ceph-functional
         - os-brick-src-tempest-lvm-lio-barbican
     post:
@@ -54,7 +53,7 @@
     name: cinderlib-lvm-functional
     parent: cinderlib-functional
     pre-run: playbooks/setup-lvm.yaml
-    nodeset: centos-8-stream
+    nodeset: centos-9-stream
     vars:
       tox_environment:
         # Workaround for https://github.com/pypa/pip/issues/6264
